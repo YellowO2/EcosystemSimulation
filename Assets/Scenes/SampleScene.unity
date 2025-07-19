@@ -560,7 +560,7 @@ MonoBehaviour:
   worldGenerator: {fileID: 1212217362}
   worldToGenerate: 1
   populationSize: 20
-  simulationTime: 100
+  simulationTime: 60
   timeScale: 10
 --- !u!4 &934909957
 Transform:
@@ -606,13 +606,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9631ec0c3dcb14e0b94a4b243f5b9055, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  worldWidth: 100
+  worldWidth: 50
   groundLevel: 5
   noiseScale: 0.1
   noiseAmplitude: 10
-  platformSteps: 5
+  platformSteps: 15
   platformWidth: 5
-  platformHeightStep: 2
+  platformHeightStep: 1
   groundTilemap: {fileID: 1591540114}
   tileSprite: {fileID: 7482667652216324306, guid: 6f21b49516cbe401cb17921bcb1ccd25, type: 3}
   foodPrefab: {fileID: 6300492896556016209, guid: 0df9124d4143144a5b8b35bab83d11f4, type: 3}

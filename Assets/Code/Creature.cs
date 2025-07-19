@@ -123,7 +123,7 @@ private void Jump()
         if (isGrounded)
         {
             rb.AddForce(new Vector2(0f, jumpForce), ForceMode2D.Impulse);
-            energy -= 0.5f; // Jumping costs energy
+            // energy -= 0.5f; // Jumping costs energy
         }
     }
 
@@ -140,7 +140,7 @@ private void Jump()
     private void Move(float horizontal)
     {
         rb.linearVelocity = new Vector2(horizontal * moveSpeed, rb.linearVelocity.y);
-        energy -= Mathf.Abs(horizontal) * 0.01f; // Moving costs energy
+        // energy -= Mathf.Abs(horizontal) * 0.01f; // Moving costs energy
     }
 
     private void LookForFood()

@@ -19,7 +19,7 @@ public class WorldGenerator : MonoBehaviour
     [Header("Platform Settings")]
     public int platformSteps = 5;
     public int platformWidth = 5;
-    public int platformHeightStep = 2;
+    public int platformHeightStep = 1;
 
     [Header("References")]
     public Tilemap groundTilemap;
@@ -82,8 +82,8 @@ public class WorldGenerator : MonoBehaviour
 
         // 2. Generate platforms and get food spawn locations
         List<Vector2> foodSpawnPoints = new List<Vector2>();
-        foodSpawnPoints.AddRange(GeneratePlatforms(0, 1));
-        foodSpawnPoints.AddRange(GeneratePlatforms(worldWidth + 1, +1));
+        foodSpawnPoints.AddRange(GeneratePlatforms(0, -1));
+        foodSpawnPoints.AddRange(GeneratePlatforms(worldWidth - 1, 1));
 
         // 3. Spawn food on the platforms
         foreach (var point in foodSpawnPoints)
@@ -96,22 +96,38 @@ public class WorldGenerator : MonoBehaviour
     private List<Vector2> GeneratePlatforms(int startX, int direction)
     {
         List<Vector2> spawnPoints = new List<Vector2>();
+        int currentX = startX;
         int currentY = groundLevel + 1;
+
         for (int i = 0; i < platformSteps; i++)
         {
-            int platformStartX = startX + (i * platformWidth * direction);
-            for (int x = 0; x < platformWidth; x++)
+            for (int w = 0; w < platformWidth; w++)
             {
-                for (int y = 0; y < platformHeightStep; y++)
+                for (int h = 0; h < platformHeightStep; h++)
                 {
-                    groundTilemap.SetTile(new Vector3Int(platformStartX + (x * direction), currentY + y, 0), dirtTile);
+                    // If direction is -1, we subtract 1 to draw from right-to-left correctly.
+                    int tileX = currentX + (w * direction) - (direction == -1 ? 1 : 0);
+                    groundTilemap.SetTile(new Vector3Int(tileX, currentY + h, 0), dirtTile);
                 }
             }
-            float foodX = platformStartX + (platformWidth / 2f * direction);
+            
+            // Calculate food position based on the platform's new edge
+            float foodX = currentX + (platformWidth / 2f * direction);
             float foodY = currentY + platformHeightStep + 1f;
             spawnPoints.Add(new Vector2(foodX, foodY));
-            currentY += platformHeightStep;
+
+            // Update state for the NEXT platform
+            currentX += platformWidth * direction; // Move the edge for the next step
+            currentY += platformHeightStep;        // Move up
         }
+        //generate walls at the edge of the platform
+        for (int h = 0; h < platformHeightStep; h++)
+        {
+            groundTilemap.SetTile(new Vector3Int(currentX, groundLevel + h, 0), dirtTile);
+            groundTilemap.SetTile(new Vector3Int(currentX + direction, groundLevel + h, 0), dirtTile);
+        }
+
+
         return spawnPoints;
     }
 

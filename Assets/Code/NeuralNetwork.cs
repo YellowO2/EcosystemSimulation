@@ -41,7 +41,6 @@ public class NeuralNetwork
     }
 
     // --- SAVE & LOAD ---
-
     public NeuralNetworkData GetData()
     {
         NeuralNetworkData data = new NeuralNetworkData();
