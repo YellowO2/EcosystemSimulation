@@ -366,7 +366,7 @@ Camera:
   far clip plane: 1000
   field of view: 34
   orthographic: 1
-  orthographic size: 30
+  orthographic size: 50
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -559,9 +559,9 @@ MonoBehaviour:
   creaturePrefab: {fileID: 2003193231976353223, guid: 4010a6a65a956471aa0d6f29aaeffa4f, type: 3}
   worldGenerator: {fileID: 1212217362}
   worldToGenerate: 1
-  populationSize: 20
+  populationSize: 3
   simulationTime: 60
-  timeScale: 10
+  timeScale: 1
 --- !u!4 &934909957
 Transform:
   m_ObjectHideFlags: 0
@@ -797,7 +797,7 @@ Transform:
   m_GameObject: {fileID: 1591540111}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -17.1, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1067,7 +1067,7 @@ Transform:
   m_GameObject: {fileID: 1702949473}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 4.6, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

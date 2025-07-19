@@ -4,7 +4,6 @@ using UnityEngine.Tilemaps;
 
 public class WorldGenerator : MonoBehaviour
 {
-    // Enum to define the types of worlds we can generate
     public enum WorldType { Perlin, Stairs }
 
     [Header("World Settings")]
@@ -29,10 +28,9 @@ public class WorldGenerator : MonoBehaviour
     private Tile dirtTile;
     private Tile grassTile;
 
-    // The main public function to be called by the SimulationManager
     public void GenerateWorld(WorldType type)
     {
-        seed = Random.Range(0, 1000); // Use a new seed each time for variety
+        seed = Random.Range(0, 1000);
         CreateTileTypes();
         ClearWorld();
 
@@ -49,9 +47,17 @@ public class WorldGenerator : MonoBehaviour
 
     private void GenerateWorld_Perlin()
     {
-        for (int x = 0; x < worldWidth; x++)
+        int startX = -worldWidth / 2;
+        int endX = worldWidth / 2;
+
+        for (int y = 0; y < groundLevel + 20; y++)
         {
-            float noiseValue = Mathf.PerlinNoise(x * noiseScale + seed, seed);
+            groundTilemap.SetTile(new Vector3Int(startX, y, 0), dirtTile);
+        }
+
+        for (int x = startX; x < endX; x++)
+        {
+            float noiseValue = Mathf.PerlinNoise((x + worldWidth / 2f) * noiseScale + seed, seed);
             int terrainHeight = groundLevel + (int)(noiseValue * noiseAmplitude);
 
             groundTilemap.SetTile(new Vector3Int(x, terrainHeight, 0), grassTile);
@@ -60,18 +66,24 @@ public class WorldGenerator : MonoBehaviour
                 groundTilemap.SetTile(new Vector3Int(x, y, 0), dirtTile);
             }
 
-            // Spawn food randomly on the Perlin terrain
-            if (Random.value < 0.1f)
+            if (Random.value < 0.2f)
             {
                 Instantiate(foodPrefab, new Vector3(x, terrainHeight + 1.5f, 0), Quaternion.identity);
             }
+        }
+
+        for (int y = 0; y < groundLevel + 20; y++)
+        {
+            groundTilemap.SetTile(new Vector3Int(endX - 1, y, 0), dirtTile);
         }
     }
 
     private void GenerateWorld_Stairs()
     {
-        // 1. Generate a flat base layer of ground
-        for (int x = 0; x < worldWidth; x++)
+        int startX = -worldWidth / 2;
+        int endX = worldWidth / 2;
+
+        for (int x = startX; x < endX; x++)
         {
             groundTilemap.SetTile(new Vector3Int(x, groundLevel, 0), grassTile);
             for (int y = 0; y < groundLevel; y++)
@@ -80,19 +92,16 @@ public class WorldGenerator : MonoBehaviour
             }
         }
 
-        // 2. Generate platforms and get food spawn locations
         List<Vector2> foodSpawnPoints = new List<Vector2>();
-        foodSpawnPoints.AddRange(GeneratePlatforms(0, -1));
-        foodSpawnPoints.AddRange(GeneratePlatforms(worldWidth - 1, 1));
+        foodSpawnPoints.AddRange(GeneratePlatforms(startX, 1));
+        foodSpawnPoints.AddRange(GeneratePlatforms(endX -1 , -1));
 
-        // 3. Spawn food on the platforms
         foreach (var point in foodSpawnPoints)
         {
             Instantiate(foodPrefab, point, Quaternion.identity);
         }
     }
-    
-    // Helper function for the stairs world
+
     private List<Vector2> GeneratePlatforms(int startX, int direction)
     {
         List<Vector2> spawnPoints = new List<Vector2>();
@@ -105,28 +114,23 @@ public class WorldGenerator : MonoBehaviour
             {
                 for (int h = 0; h < platformHeightStep; h++)
                 {
-                    // If direction is -1, we subtract 1 to draw from right-to-left correctly.
-                    int tileX = currentX + (w * direction) - (direction == -1 ? 1 : 0);
+                    int tileX = currentX + (w * direction) + (direction == -1 ? 1 : 0);
                     groundTilemap.SetTile(new Vector3Int(tileX, currentY + h, 0), dirtTile);
                 }
             }
-            
-            // Calculate food position based on the platform's new edge
+
             float foodX = currentX + (platformWidth / 2f * direction);
             float foodY = currentY + platformHeightStep + 1f;
             spawnPoints.Add(new Vector2(foodX, foodY));
 
-            // Update state for the NEXT platform
-            currentX += platformWidth * direction; // Move the edge for the next step
-            currentY += platformHeightStep;        // Move up
-        }
-        //generate walls at the edge of the platform
-        for (int h = 0; h < platformHeightStep; h++)
-        {
-            groundTilemap.SetTile(new Vector3Int(currentX, groundLevel + h, 0), dirtTile);
-            groundTilemap.SetTile(new Vector3Int(currentX + direction, groundLevel + h, 0), dirtTile);
+            currentX += platformWidth * direction;
+            currentY += platformHeightStep;
         }
 
+        for (int h = 0; h < platformHeightStep * platformSteps + 2; h++)
+        {
+             groundTilemap.SetTile(new Vector3Int(currentX, groundLevel + h, 0), dirtTile);
+        }
 
         return spawnPoints;
     }
