@@ -1,69 +1,135 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
 public class WorldGenerator : MonoBehaviour
 {
+    // Enum to define the types of worlds we can generate
+    public enum WorldType { Perlin, Stairs }
+
     [Header("World Settings")]
     public int worldWidth = 100;
-    public int groundLevel;
-    // starting position
-    public Vector2Int startPosition = new Vector2Int(0, 0);
+    public int groundLevel = 5;
 
     [Header("Noise Settings")]
-    public float noiseScale = 0.1f;    // How zoomed in the noise is. Basically controls how much the curve is stretched horizontally.
-    public int noiseAmplitude = 10;  // How high the hills can be.
-    private float seed;              // seed for the terrain
+    public float noiseScale = 0.1f;
+    public int noiseAmplitude = 10;
+    private float seed;
+
+    [Header("Platform Settings")]
+    public int platformSteps = 5;
+    public int platformWidth = 5;
+    public int platformHeightStep = 2;
 
     [Header("References")]
-    public Tilemap groundTilemap; // Drag your Tilemap here
-    public Sprite tileSprite;      // Drag your single white pixel sprite here
+    public Tilemap groundTilemap;
+    public Sprite tileSprite;
+    public GameObject foodPrefab;
 
-    // We'll create our tiles in code, so we need a place to store them.
     private Tile dirtTile;
     private Tile grassTile;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+
+    // The main public function to be called by the SimulationManager
+    public void GenerateWorld(WorldType type)
     {
-        seed = 69;
-        groundLevel = startPosition.y;
+        seed = Random.Range(0, 1000); // Use a new seed each time for variety
         CreateTileTypes();
-        GenerateWorld();
-    }
+        ClearWorld();
 
-    void CreateTileTypes()
-    {
-        // Create an instance of a "Dirt" tile
-        dirtTile = ScriptableObject.CreateInstance<Tile>();
-        dirtTile.sprite = tileSprite;
-        dirtTile.color = new Color(0.5f, 0.3f, 0.1f); // A brownish color
-
-        // Create an instance of a "Grass" tile
-        grassTile = ScriptableObject.CreateInstance<Tile>();
-        grassTile.sprite = tileSprite;
-        grassTile.color = new Color(0.2f, 0.8f, 0.2f); // A greenish color
-    }
-
-    void GenerateWorld()
-    {
-        for (int x = startPosition.x; x < worldWidth - startPosition.x; x++)
+        switch (type)
         {
-            //generate the height of the terrain at this x position using Perlin noise
-            float noiseValue = Mathf.PerlinNoise(x * noiseScale + seed, seed); //our y parameter is a constant as we are not making a 3d terrain
+            case WorldType.Perlin:
+                GenerateWorld_Perlin();
+                break;
+            case WorldType.Stairs:
+                GenerateWorld_Stairs();
+                break;
+        }
+    }
+
+    private void GenerateWorld_Perlin()
+    {
+        for (int x = 0; x < worldWidth; x++)
+        {
+            float noiseValue = Mathf.PerlinNoise(x * noiseScale + seed, seed);
             int terrainHeight = groundLevel + (int)(noiseValue * noiseAmplitude);
 
-            groundTilemap.SetTile(new Vector3Int(x, terrainHeight - startPosition.y - 1, 0), grassTile);
-            for (int y = startPosition.y; y < terrainHeight - startPosition.y - 1; y++)// dirt if below top layer
+            groundTilemap.SetTile(new Vector3Int(x, terrainHeight, 0), grassTile);
+            for (int y = 0; y < terrainHeight; y++)
             {
-                Vector3Int cellPosition = new Vector3Int(x, y, 0);
-                groundTilemap.SetTile(cellPosition, dirtTile);
+                groundTilemap.SetTile(new Vector3Int(x, y, 0), dirtTile);
+            }
+
+            // Spawn food randomly on the Perlin terrain
+            if (Random.value < 0.1f)
+            {
+                Instantiate(foodPrefab, new Vector3(x, terrainHeight + 1.5f, 0), Quaternion.identity);
             }
         }
     }
 
-
-    // Update is called once per frame
-    void Update()
+    private void GenerateWorld_Stairs()
     {
+        // 1. Generate a flat base layer of ground
+        for (int x = 0; x < worldWidth; x++)
+        {
+            groundTilemap.SetTile(new Vector3Int(x, groundLevel, 0), grassTile);
+            for (int y = 0; y < groundLevel; y++)
+            {
+                groundTilemap.SetTile(new Vector3Int(x, y, 0), dirtTile);
+            }
+        }
 
+        // 2. Generate platforms and get food spawn locations
+        List<Vector2> foodSpawnPoints = new List<Vector2>();
+        foodSpawnPoints.AddRange(GeneratePlatforms(0, 1));
+        foodSpawnPoints.AddRange(GeneratePlatforms(worldWidth + 1, +1));
+
+        // 3. Spawn food on the platforms
+        foreach (var point in foodSpawnPoints)
+        {
+            Instantiate(foodPrefab, point, Quaternion.identity);
+        }
+    }
+    
+    // Helper function for the stairs world
+    private List<Vector2> GeneratePlatforms(int startX, int direction)
+    {
+        List<Vector2> spawnPoints = new List<Vector2>();
+        int currentY = groundLevel + 1;
+        for (int i = 0; i < platformSteps; i++)
+        {
+            int platformStartX = startX + (i * platformWidth * direction);
+            for (int x = 0; x < platformWidth; x++)
+            {
+                for (int y = 0; y < platformHeightStep; y++)
+                {
+                    groundTilemap.SetTile(new Vector3Int(platformStartX + (x * direction), currentY + y, 0), dirtTile);
+                }
+            }
+            float foodX = platformStartX + (platformWidth / 2f * direction);
+            float foodY = currentY + platformHeightStep + 1f;
+            spawnPoints.Add(new Vector2(foodX, foodY));
+            currentY += platformHeightStep;
+        }
+        return spawnPoints;
+    }
+
+    private void CreateTileTypes()
+    {
+        if (dirtTile != null) return;
+        dirtTile = ScriptableObject.CreateInstance<Tile>();
+        dirtTile.sprite = tileSprite;
+        dirtTile.color = new Color(0.5f, 0.3f, 0.1f);
+        grassTile = ScriptableObject.CreateInstance<Tile>();
+        grassTile.sprite = tileSprite;
+        grassTile.color = new Color(0.2f, 0.8f, 0.2f);
+    }
+
+    private void ClearWorld()
+    {
+        groundTilemap.ClearAllTiles();
+        GameObject[] foodItems = GameObject.FindGameObjectsWithTag("Food");
+        foreach (GameObject food in foodItems) { Destroy(food); }
     }
 }

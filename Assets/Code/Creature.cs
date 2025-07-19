@@ -13,38 +13,41 @@ public class Creature : MonoBehaviour
 
     // === Drives (The "Brain Chemicals") ===
     public float maxDriveValue = 100f;
-    // --- Hunger ---
-    public float hungerDrive = 0f; //how hungry the creature is
-    private float hungerIncreaseRate = 10f;
     // --- Laziness ---
     public float laziness = 10f;
-    // ---- Reproduction ----
-    public float reproductionDrive = 50f;
-    // ---- Explore ----
-    public float explorationDrive = 20f; // How much the creature wants to explore
-
+    // // ---- Reproduction ----
+    // public float reproductionDrive = 50f;
     // Other traits
     public float flexibility = 1f; // How not stubborn the creature is, i.e, how fast it changes its mind, i.e. time between action choice
     public float lastActionTime = 0f; // When was the last time the creature did something
     public float height = 1f;
     public float width = 1f;
     public float energy = 100f; // How much energy the creature has
+    public float survivalTime = 0f; // A score for how well it's doing
     // --- Senses ---
     private float detectionRadius = 5f;
     private Transform target;
+    public NeuralNetwork brain;
+    private Transform closestFood;
+    private int[] networkLayers = new int[] { 5, 4, 2 };
 
     // --- Movement & Physics ---
     [Header("Movement")]
     public float jumpForce = 5f;
     public LayerMask groundLayer;
+    public LayerMask foodLayer;
     private bool isGrounded;
+    
 
     //UI
-    public StatusBar hungerBar;
+    public StatusBar energyBar;
     public StatusBar reproductionBar;
 
 
-
+    public void Init(NeuralNetwork brain)
+    {
+        this.brain = brain;
+    }
 
     void Awake()
     {
@@ -55,150 +58,110 @@ public class Creature : MonoBehaviour
 
     void FixedUpdate()
     {
-        CheckGrounded();
-        hungerDrive += hungerIncreaseRate * Time.fixedDeltaTime;
-        if (hungerDrive > 100) hungerDrive = 100f; // Cap hungerDrive at 100
-        hungerBar.UpdateBar(hungerDrive, maxDriveValue);
-        reproductionBar.UpdateBar(reproductionDrive, maxDriveValue);
-        reproductionDrive += 1f * Time.fixedDeltaTime; // Slowly increase reproduction drive
+        UpdateDrives();
+        if (brain == null) return;
 
-
-        if (Time.time - lastActionTime > flexibility)  //check if enough time has passed since the last action
+        LookForFood();
+        float[] inputs = GetInputs();
+        float[] outputs = brain.FeedForward(inputs);
+        
+        Move(outputs[0]);
+        if (outputs[1] > 0.5f)
         {
-            DecideNextAction();
-            lastActionTime = Time.time;
+            Jump();
         }
 
-        MoveTowardsTarget();
+        energy -= Time.fixedDeltaTime; // Constant energy drain
+        survivalTime += Time.fixedDeltaTime; // survivalTime is survival time
+
         if (energy <= 0)
         {
             Die();
         }
     }
+
+    private float[] GetInputs()
+    {
+        CheckGrounded();
+        
+        Vector2 foodDir = Vector2.zero;
+        if (closestFood != null)
+        {
+            foodDir = (closestFood.position - transform.position).normalized;
+        }
+
+        return new float[]
+        {
+            foodDir.x,
+            foodDir.y,
+            rb.linearVelocity.x / 10f, // Normalize velocity
+            rb.linearVelocity.y / 10f, // Normalize velocity
+            isGrounded ? 1f : 0f
+        };
+    }
+    
+private void UpdateDrives()
+    {
+        // Update energy bar
+        if (energyBar != null)
+        {
+            energyBar.UpdateBar(energy, 100);
+        }
+        // reproductionBar.UpdateBar(reproductionDrive, maxDriveValue);
+            energy -= 0.5f * Time.fixedDeltaTime; // Small energy decay over time
+    }
+
+
     private void CheckGrounded()
     {
         // TODO: Adjust raycast distance based on creature's height
         float raycastDistance = height / 2 + 0.1f; // Add a small buffer
         isGrounded = Physics2D.Raycast(transform.position, Vector2.down, raycastDistance, groundLayer);
     }
-    public void Jump()
+private void Jump()
     {
-        Debug.Log("try Jumping");
         if (isGrounded)
         {
-            Debug.Log("Jumping");
-            rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+            rb.AddForce(new Vector2(0f, jumpForce), ForceMode2D.Impulse);
+            energy -= 0.5f; // Jumping costs energy
         }
     }
 
-    void DecideNextAction()
+     void OnCollisionEnter2D(Collision2D collision)
     {
-        energy -= 0.1f; // Consuming energy for each decision made
-        //sort the drives using an array of tuples
-        var drives = new (string name, float value)[]
+        if (collision.gameObject.CompareTag("Food"))
         {
-                ("Hunger", hungerDrive),
-                ("Laziness", laziness),
-                ("Reproduction", reproductionDrive),
-                ("Exploration", explorationDrive)
-        };
-        Array.Sort(drives, (a, b) => b.value.CompareTo(a.value)); // Sort descending
-
-        bool actionTaken = false;
-        foreach (var drive in drives)
-        {
-            switch (drive.name)
-            {
-                case "Reproduction":
-                    // Try to find a mate. If successful, we're done deciding.
-                    if (LookForMate())
-                    {
-                        actionTaken = true;
-                    }
-                    break;
-                case "Hunger":
-                    // If we're not busy with a mate, try to find food.
-                    if (LookForFood())
-                    {
-                        actionTaken = true;
-                    }
-                    break;
-                case "Exploration":
-                    // If we're not busy with food or a mate, explore.
-                    actionTaken = true;
-                    break;
-            }
-
-            if (actionTaken)
-            {
-                break;
-            }
+            Eat(collision.transform);
         }
     }
+    
 
-    void OnCollisionEnter2D(Collision2D collision)
+
+    private void Move(float horizontal)
     {
-        if (collision.gameObject == target?.gameObject)
-        {
-            target = null; //we have reached our target
-            if (collision.gameObject.CompareTag("Food"))
-            {
-                Eat(collision.transform);
-            }
-            else if (collision.gameObject.CompareTag("Creature"))
-            {
-                Sex(collision.gameObject.GetComponent<Creature>());
-            }
-        }
+        rb.linearVelocity = new Vector2(horizontal * moveSpeed, rb.linearVelocity.y);
+        energy -= Mathf.Abs(horizontal) * 0.01f; // Moving costs energy
     }
 
-
-    private void MoveTowardsTarget()
+    private void LookForFood()
     {
-        if (target == null)
-        {
-            //explore if no target
-            rb.linearVelocity = new Vector2(moveDirection * moveSpeed, rb.linearVelocity.y);
-        }
-        else
-        {
-            float direction = Mathf.Sign(target.position.x - transform.position.x);
+        // Simple check to avoid checking every frame if we already have a target
+        if (closestFood != null && Vector2.Distance(transform.position, closestFood.position) < detectionRadius) return;
 
-            RaycastHit2D wallHit = Physics2D.Raycast(transform.position, new Vector2(moveDirection, 0), width / 2 + 0.1f, groundLayer);
-            if (wallHit.collider != null)
-            {
-                Debug.Log("Wall detected");
-                Jump(); // There's a wall, try to jump over it
-            }
-            rb.linearVelocity = new Vector2(direction * moveSpeed, rb.linearVelocity.y);
-        }
-    }
-
-    bool LookForFood()
-    {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, detectionRadius);
-        Transform closestFood = null;
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, detectionRadius, foodLayer);
         float minDistance = Mathf.Infinity;
+        Transform foundFood = null;
 
-        foreach (Collider2D hit in hits)
+        foreach (var hit in hits)
         {
-            if (hit.CompareTag("Food"))
+            float distance = Vector2.Distance(transform.position, hit.transform.position);
+            if (distance < minDistance)
             {
-                float distance = Vector2.Distance(transform.position, hit.transform.position);
-                if (distance < minDistance)
-                {
-                    minDistance = distance;
-                    closestFood = hit.transform;
-                }
+                minDistance = distance;
+                foundFood = hit.transform;
             }
         }
-
-        if (closestFood != null)
-        {
-            target = closestFood;
-            return true; // Success! Found food.
-        }
-        return false;
+        closestFood = foundFood;
     }
 
     bool LookForMate()
@@ -226,30 +189,13 @@ public class Creature : MonoBehaviour
     {
         if (food != null)
         {
-            hungerDrive -= 20f;
-            if (hungerDrive < 0) hungerDrive = 0;
+            energy += 20f; // Gain energy from food
             Destroy(food.gameObject);
         }
     }
 
-    private void Sex(Creature mate)
+    private void Reproduce(Creature mate) // for later use
     {
-        if (mate != null && reproductionDrive >= 40f && mate.reproductionDrive >= 40f)
-        {
-            Debug.Log("Mating with " + mate.name);
-            this.energy -= 20f; // Consuming energy for mating
-                                //mate.energy -= 20f; we shouldnt do this as we want the creature to manage its own energy
-
-            reproductionDrive = 0f; // Decrease reproduction drive after mating
-            mate.reproductionDrive = 0f;
-            Reproduce(mate); //TODO: We should implement a more complex reproduction system later like pregancy
-        }
-    }
-
-    private void Reproduce(Creature mate)
-    {
-        // Instantiate from the PREFAB, not the current object
-        //calculate spawn position as ontop of parent
         Vector2 spawnPosition = new Vector2(transform.position.x, transform.position.y + height / 2 + 0.5f);
         GameObject offspringObj = Instantiate(creaturePrefab, spawnPosition, Quaternion.identity);
         Creature child = offspringObj.GetComponent<Creature>();
