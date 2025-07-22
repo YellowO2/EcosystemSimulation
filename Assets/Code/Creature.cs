@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody2D))]
 public class Creature : MonoBehaviour
 {
     // --- Core Components ---
@@ -8,11 +9,11 @@ public class Creature : MonoBehaviour
 
     // --- Fitness & Survival ---
     public float energy = 100f;
-    public float fitness = 0f; // Calculated by SimulationManager at the end
+    public float fitness = 0f;
 
     // --- Physical Traits ---
-    private float moveSpeed = 5f;
-    private float jumpForce = 12f;
+    private float moveForce = 5f; // CHANGED: Renamed from moveSpeed to reflect force application
+    private float jumpForce = 5f;
 
     // --- Senses ---
     private float detectionRadius = 15f;
@@ -20,10 +21,18 @@ public class Creature : MonoBehaviour
     private LayerMask foodLayer;
     private LayerMask creatureLayer;
     private bool isGrounded;
+    private bool isInWater;
+
+    // --- Physics State ---
+    private float originalGravityScale;
+    private float originalDrag;
+
+    [Header("Water Physics")]
+    public float underwaterGravityScale = 0.2f;
+    public float underwaterDrag = 3f;
 
     // --- UI ---
     public StatusBar energyBar;
-
 
     public void Init(NeuralNetwork brain)
     {
@@ -36,24 +45,22 @@ public class Creature : MonoBehaviour
         groundLayer = LayerMask.GetMask("Ground");
         foodLayer = LayerMask.GetMask("Food");
         creatureLayer = LayerMask.GetMask("Creature");
+
+        originalGravityScale = rb.gravityScale;
+        originalDrag = rb.linearDamping; // drag is outdated i think, use linearDamping instead
     }
 
     void FixedUpdate()
     {
         if (brain == null) return;
 
-        // === 1. GET INPUTS ===
         float[] inputs = GatherInputs();
-
-        // === 2. THINK ===
         float[] outputs = brain.FeedForward(inputs);
 
-        // === 3. ACT ===
-        Move(outputs[0]);
-        if (outputs[1] > 0.5f) Jump();
+        // --- CHANGED: Use a single Action function ---
+        Act(outputs[0], outputs[1]);
 
-        // --- Survival ---
-        energy -= 0.8f * Time.fixedDeltaTime; // Base metabolic cost
+        energy -= (0.5f + Mathf.Abs(rb.linearVelocity.magnitude) * 0.1f) * Time.fixedDeltaTime; // More dynamic energy cost
         energyBar.UpdateBar(energy, 100f);
         if (energy <= 0)
         {
@@ -63,58 +70,80 @@ public class Creature : MonoBehaviour
 
     private float[] GatherInputs()
     {
-        // Ground Sensor
         isGrounded = Physics2D.Raycast(transform.position, Vector2.down, 1.1f, groundLayer);
-
-        // Find closest objects
         Transform closestFood = FindClosest(foodLayer);
-
-        // Normalize directions (or use zero if nothing is found)
         Vector2 foodDir = closestFood ? (closestFood.position - transform.position).normalized : Vector2.zero;
-    
 
-        // The 7 inputs for the Neural Network
-        return new float[5]
+        return new float[6]
         {
             isGrounded ? 1f : 0f,
-            rb.linearVelocity.x / 10f, // Normalize
-            rb.linearVelocity.y / 10f, // Normalize
+            rb.linearVelocity.x / 10f,
+            rb.linearVelocity.y / 10f,
             foodDir.x,
             foodDir.y,
+            isInWater ? 1f : 0f
         };
     }
 
-    private void Move(float horizontal)
+    // --- NEW: Unified action function ---
+    private void Act(float horizontal, float vertical)
     {
-        if (isGrounded)
+        if (isInWater)
         {
-             rb.linearVelocity = new Vector2(horizontal * moveSpeed, rb.linearVelocity.y);
+            // In water, apply continuous force for swimming
+            Vector2 swimForce = new Vector2(horizontal, vertical) * moveForce;
+            rb.AddForce(swimForce);
         }
-       
-    }
-
-    private void Jump()
-    {
-        if (isGrounded)
+        else if (isGrounded)
         {
-            rb.AddForce(new Vector2(0f, jumpForce), ForceMode2D.Impulse);
-            energy -= 1f; // Jumping costs energy
-        }
-    }
+            // On land, set horizontal velocity directly for responsiveness
+            rb.linearVelocity = new Vector2(horizontal * moveForce, rb.linearVelocity.y);
 
-    void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Food"))
-        {
-            Eat(collision.gameObject);
+            // On land, vertical is an impulse jump, only if positive
+            if (vertical > 0)
+            {
+                rb.AddForce(new Vector2(0f, vertical * jumpForce), ForceMode2D.Impulse);
+                energy -= 0.5f * vertical; // Jumping costs energy based on force
+            }
         }
     }
 
-    void Eat(GameObject food)
+    // --- REMOVED: Old Move() and Jump() functions are now replaced by Act() ---
+
+    void OnTriggerEnter2D(Collider2D other)
     {
-        energy += 25f;
+        if (other.CompareTag("Water"))
+        {
+            isInWater = true;
+            rb.gravityScale = underwaterGravityScale;
+            rb.linearDamping = underwaterDrag;
+        }
+        // --- FIXED: Eat on trigger enter, not exit ---
+        else if (other.CompareTag("Food"))
+        {
+            Plant plant = other.GetComponent<Plant>();
+            if (plant != null)
+            {
+                Eat(plant);
+            }
+        }
+    }
+
+    void OnTriggerExit2D(Collider2D other)
+    {
+        if (other.CompareTag("Water"))
+        {
+            isInWater = false;
+            rb.gravityScale = originalGravityScale;
+            rb.linearDamping = originalDrag;
+        }
+    }
+
+    void Eat(Plant plant)
+    {
+        float energyGained = plant.BeEaten();
+        energy += energyGained;
         if (energy > 100f) energy = 100f;
-        Destroy(food);
     }
 
     private Transform FindClosest(LayerMask layer, bool findOtherCreatures = false)
@@ -139,8 +168,6 @@ public class Creature : MonoBehaviour
 
     private void Die()
     {
-        // Don't Destroy immediately. Just deactivate.
-        // The SimulationManager will clean up all game objects at the end of the generation.
         gameObject.SetActive(false);
     }
 

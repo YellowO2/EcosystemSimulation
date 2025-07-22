@@ -14,11 +14,18 @@ public class SimulationManager : MonoBehaviour
     public int populationSize = 50;
     public float simulationTime = 120f;
     [Range(1f, 100f)] public float timeScale = 10f;
+    public float mutationRate = 0.1f;
+    public float mutationStrength = 0.5f;
 
     private List<Creature> population = new List<Creature>();
-    private int[] networkLayers = new int[] { 5, 6, 2 }; // Inputs, hidden, outputs
+    private int[] networkLayers = new int[] { 6, 5, 2 }; // Inputs, hidden, outputs
     private int generation = 0;
     private float timer;
+
+    // [Header("Food Settings")]
+    // public GameObject planktonPrefab;
+    // public int initialPlanktonCount = 50;
+
 
     private const string SAVE_FILE_NAME = "/bestBrain.json";
     private string savePath;
@@ -49,6 +56,15 @@ public class SimulationManager : MonoBehaviour
                 startingBrains.Add(new NeuralNetwork(networkLayers));
             }
         }
+        //generate world only once at the start
+        worldGenerator.GenerateWorld(worldToGenerate);
+
+        // for (int i = 0; i < initialPlanktonCount; i++)
+        // {
+        //     float x = Random.Range(-worldGenerator.worldWidth / 2f, worldGenerator.worldWidth / 2f);
+        //     float y = Random.Range(worldGenerator.waterLevel, worldGenerator.waterLevel + 10f);
+        //     Instantiate(planktonPrefab, new Vector2(x, y), Quaternion.identity);
+        // }
 
         StartNewGeneration(startingBrains);
     }
@@ -68,8 +84,6 @@ public class SimulationManager : MonoBehaviour
         timer = 0f;
         Debug.Log("Starting Generation: " + generation);
 
-        worldGenerator.GenerateWorld(worldToGenerate);
-
         foreach (var creature in population)
         {
             if (creature != null) Destroy(creature.gameObject);
@@ -86,13 +100,13 @@ public class SimulationManager : MonoBehaviour
 
     private void EvolvePopulation()
     {
+        worldGenerator.ResetFood(); // Reset food for the next generation
         // --- 1. Calculate Fitness for each Creature ---
         foreach (var creature in population)
         {
             if (creature != null && creature.gameObject.activeSelf)
             {
-                // Fitness = Remaining energy + a large bonus for each successful reproduction.
-                // This makes reproduction the primary goal.
+                // add more calculations here if needed when more properties are added
                 creature.fitness = creature.energy;
             }
         }
@@ -103,7 +117,6 @@ public class SimulationManager : MonoBehaviour
             .OrderByDescending(o => o.fitness)
             .ToList();
 
-        // Handle the case where all creatures have died.
         if (sortedPopulation.Count == 0)
         {
             Debug.LogWarning("Extinction event! Starting a fresh random generation.");
@@ -123,8 +136,8 @@ public class SimulationManager : MonoBehaviour
         // --- 4. Breed the Next Generation ---
         List<NeuralNetwork> newBrains = new List<NeuralNetwork>();
 
-        // The top 20% of creatures (the "elites") get to pass on their brains directly.
-        int eliteCount = Mathf.Max(1, (int)(sortedPopulation.Count * 0.2f));
+        // The top 10% of creatures (the "elites") get to pass on their brains directly.
+        int eliteCount = Mathf.Max(1, (int)(sortedPopulation.Count * 0.1f));
         for (int i = 0; i < eliteCount; i++)
         {
             newBrains.Add(new NeuralNetwork(sortedPopulation[i].brain));
@@ -136,7 +149,7 @@ public class SimulationManager : MonoBehaviour
             // Select a random parent from the elite group.
             NeuralNetwork parentBrain = newBrains[Random.Range(0, eliteCount)];
             NeuralNetwork childBrain = new NeuralNetwork(parentBrain);
-            childBrain.Mutate(0.2f, 0.1f); // Apply mutation
+            childBrain.Mutate(mutationRate, mutationStrength); // Apply mutation
             newBrains.Add(childBrain);
         }
 

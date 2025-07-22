@@ -258,7 +258,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   energy: 100
-  reproductionCount: 0
   fitness: 0
   energyBar: {fileID: 1638570267729017565}
 --- !u!70 &6472146739618667928
@@ -566,7 +565,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &743748865118769511
 RectTransform:
   m_ObjectHideFlags: 0

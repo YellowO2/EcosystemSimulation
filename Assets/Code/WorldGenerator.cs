@@ -8,7 +8,8 @@ public class WorldGenerator : MonoBehaviour
 
     [Header("World Settings")]
     public int worldWidth = 100;
-    public int groundLevel = 5;
+    public int groundLevel = 5; //when generating with perlin noise, as out amplitude is 5, the average level will be 10
+    public int waterLevel = 10; //since average ground level is 10, water will be that as well
 
     [Header("Noise Settings")]
     public float noiseScale = 0.1f;
@@ -22,11 +23,15 @@ public class WorldGenerator : MonoBehaviour
 
     [Header("References")]
     public Tilemap groundTilemap;
+    public Tilemap waterTilemap;
     public Sprite tileSprite;
     public GameObject foodPrefab;
 
     private Tile dirtTile;
     private Tile grassTile;
+    private Tile waterTile;
+    private List<Vector3> foodSpawnPoints = new List<Vector3>();
+
 
     public void GenerateWorld(WorldType type)
     {
@@ -43,40 +48,58 @@ public class WorldGenerator : MonoBehaviour
                 GenerateWorld_Stairs();
                 break;
         }
+        ResetFood();
     }
+
+
 
     private void GenerateWorld_Perlin()
+{
+    int startX = -worldWidth / 2;
+    int endX = worldWidth / 2;
+
+    // Boundary walls (no changes here)
+    for (int y = 0; y < groundLevel + 50; y++)
     {
-        int startX = -worldWidth / 2;
-        int endX = worldWidth / 2;
+        groundTilemap.SetTile(new Vector3Int(startX, y, 0), dirtTile);
+        groundTilemap.SetTile(new Vector3Int(endX - 1, y, 0), dirtTile);
+    }
 
-        for (int y = 0; y < groundLevel + 20; y++)
+    for (int x = startX; x < endX; x++)
+    {
+        // --- Terrain Generation ---
+        float noiseValue = Mathf.PerlinNoise((x + worldWidth / 2f) * noiseScale + seed, seed);
+        int terrainHeight = groundLevel + (int)(noiseValue * noiseAmplitude);
+
+        groundTilemap.SetTile(new Vector3Int(x, terrainHeight, 0), grassTile);
+        for (int y = 0; y < terrainHeight; y++)
         {
-            groundTilemap.SetTile(new Vector3Int(startX, y, 0), dirtTile);
+            groundTilemap.SetTile(new Vector3Int(x, y, 0), dirtTile);
         }
 
-        for (int x = startX; x < endX; x++)
+        // 1. Spawn some food on the sea floor
+        if (Random.value < 0.15f)
         {
-            float noiseValue = Mathf.PerlinNoise((x + worldWidth / 2f) * noiseScale + seed, seed);
-            int terrainHeight = groundLevel + (int)(noiseValue * noiseAmplitude);
-
-            groundTilemap.SetTile(new Vector3Int(x, terrainHeight, 0), grassTile);
-            for (int y = 0; y < terrainHeight; y++)
-            {
-                groundTilemap.SetTile(new Vector3Int(x, y, 0), dirtTile);
-            }
-
-            if (Random.value < 0.2f)
-            {
-                Instantiate(foodPrefab, new Vector3(x, terrainHeight + 1.5f, 0), Quaternion.identity);
-            }
+            foodSpawnPoints.Add(new Vector3(x, terrainHeight + 1.5f, 0));
         }
 
-        for (int y = 0; y < groundLevel + 20; y++)
+        // 2. Spawn some food floating in the water
+        if (Random.value < 0.05f)
         {
-            groundTilemap.SetTile(new Vector3Int(endX - 1, y, 0), dirtTile);
+            // Pick a random height between the sea floor and the water surface
+            float randomY = Random.Range(terrainHeight + 3f, waterLevel - 1f);
+            foodSpawnPoints.Add(new Vector3(x, randomY, 0));
+        }
+        // 3. Fill the water area with tiles
+        for (int y = 0; y < waterLevel; y++)
+        {
+            if (groundTilemap.GetTile(new Vector3Int(x, y, 0)) == null)
+            {
+                waterTilemap.SetTile(new Vector3Int(x, y, 0), waterTile);
+            }
         }
     }
+}
 
     private void GenerateWorld_Stairs()
     {
@@ -92,19 +115,12 @@ public class WorldGenerator : MonoBehaviour
             }
         }
 
-        List<Vector2> foodSpawnPoints = new List<Vector2>();
-        foodSpawnPoints.AddRange(GeneratePlatforms(startX, 1));
-        foodSpawnPoints.AddRange(GeneratePlatforms(endX -1 , -1));
-
-        foreach (var point in foodSpawnPoints)
-        {
-            Instantiate(foodPrefab, point, Quaternion.identity);
-        }
+        GeneratePlatforms(startX, 1);
+        GeneratePlatforms(endX - 1, -1);
     }
 
-    private List<Vector2> GeneratePlatforms(int startX, int direction)
+    private void GeneratePlatforms(int startX, int direction)
     {
-        List<Vector2> spawnPoints = new List<Vector2>();
         int currentX = startX;
         int currentY = groundLevel + 1;
 
@@ -121,7 +137,7 @@ public class WorldGenerator : MonoBehaviour
 
             float foodX = currentX + (platformWidth / 2f * direction);
             float foodY = currentY + platformHeightStep + 1f;
-            spawnPoints.Add(new Vector2(foodX, foodY));
+            foodSpawnPoints.Add(new Vector3(foodX, foodY, 0)); // Add to the main list
 
             currentX += platformWidth * direction;
             currentY += platformHeightStep;
@@ -129,10 +145,25 @@ public class WorldGenerator : MonoBehaviour
 
         for (int h = 0; h < platformHeightStep * platformSteps + 2; h++)
         {
-             groundTilemap.SetTile(new Vector3Int(currentX, groundLevel + h, 0), dirtTile);
+            groundTilemap.SetTile(new Vector3Int(currentX, groundLevel + h, 0), dirtTile);
+        }
+    }
+
+
+    public void ResetFood()
+    {
+        // 1. Destroy all old plants
+        GameObject[] oldFood = GameObject.FindGameObjectsWithTag("Food");
+        foreach (GameObject food in oldFood)
+        {
+            Destroy(food);
         }
 
-        return spawnPoints;
+        // 2. Spawn new plants from our saved list of locations
+        foreach (var pos in foodSpawnPoints)
+        {
+            Instantiate(foodPrefab, pos, Quaternion.identity);
+        }
     }
 
     private void CreateTileTypes()
@@ -144,12 +175,18 @@ public class WorldGenerator : MonoBehaviour
         grassTile = ScriptableObject.CreateInstance<Tile>();
         grassTile.sprite = tileSprite;
         grassTile.color = new Color(0.2f, 0.8f, 0.2f);
+
+        waterTile = ScriptableObject.CreateInstance<Tile>();
+        waterTile.sprite = tileSprite;
+        waterTile.color = new Color(0.1f, 0.3f, 0.8f, 0.7f); // Added transparency
     }
 
     private void ClearWorld()
     {
         groundTilemap.ClearAllTiles();
+        waterTilemap.ClearAllTiles();
         GameObject[] foodItems = GameObject.FindGameObjectsWithTag("Food");
+
         foreach (GameObject food in foodItems) { Destroy(food); }
     }
 }
