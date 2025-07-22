@@ -21,7 +21,7 @@ public class Creature : MonoBehaviour
     private LayerMask foodLayer;
     private LayerMask creatureLayer;
     private bool isGrounded;
-    private bool isInWater;
+    private bool isInWater; //currrently i am using tags to detect water, not sure if this is the best way
 
     // --- Physics State ---
     private float originalGravityScale;
@@ -114,6 +114,7 @@ public class Creature : MonoBehaviour
     {
         if (other.CompareTag("Water"))
         {
+            Debug.Log("Entered water, applying underwater physics.");
             isInWater = true;
             rb.gravityScale = underwaterGravityScale;
             rb.linearDamping = underwaterDrag;
