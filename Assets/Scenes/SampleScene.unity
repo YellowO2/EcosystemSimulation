@@ -697,7 +697,7 @@ MonoBehaviour:
   creaturePrefab: {fileID: 2003193231976353223, guid: 4010a6a65a956471aa0d6f29aaeffa4f, type: 3}
   worldGenerator: {fileID: 1212217362}
   worldToGenerate: 0
-  populationSize: 30
+  populationSize: 1
   simulationTime: 60
   timeScale: 8
   mutationRate: 0.3
@@ -1413,6 +1413,10 @@ PrefabInstance:
     - target: {fileID: 2832266328802326960, guid: 63523b48f266a2d458c2a66ae69b62b6, type: 3}
       propertyPath: m_Name
       value: Plant
+      objectReference: {fileID: 0}
+    - target: {fileID: 2832266328802326960, guid: 63523b48f266a2d458c2a66ae69b62b6, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 6179357991319353504, guid: 63523b48f266a2d458c2a66ae69b62b6, type: 3}
       propertyPath: m_LocalPosition.x

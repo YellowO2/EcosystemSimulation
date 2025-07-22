@@ -114,7 +114,6 @@ public class Creature : MonoBehaviour
     {
         if (other.CompareTag("Water"))
         {
-            Debug.Log("Entered water, applying underwater physics.");
             isInWater = true;
             rb.gravityScale = underwaterGravityScale;
             rb.linearDamping = underwaterDrag;
