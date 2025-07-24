@@ -19,15 +19,23 @@ public class SimulationManager : MonoBehaviour
     public float simulationTime = 120f;
     [Range(1f, 100f)] public float timeScale = 10f;
     public float mutationRate = 0.1f;
-    public float mutationStrength = 0.5f;
+    public float mutationStrength = 0.1f;
 
     private List<Creature> population = new List<Creature>();
-    private int[] networkLayers = new int[] { 4, 3, 2 };
+    private int[] networkLayers = new int[] { 9, 6, 2 };
     private int generation = 0;
     private float timer;
 
-    private const string SAVE_FILE_NAME = "/bestBrain.json";
+    // private const string SAVE_FILE_NAME = "/bestBrain.json";
+    private const string SAVE_FILE_NAME = "/topBrains.json";
     private string savePath;
+    public int topBrainsToSave = 10;
+
+    [System.Serializable]
+    public class BrainSaveData
+    {
+        public List<NeuralNetworkData> brains = new List<NeuralNetworkData>();
+    }
 
     void Start()
     {
@@ -38,11 +46,13 @@ public class SimulationManager : MonoBehaviour
 
         if (File.Exists(savePath))
         {
-            Debug.Log("Loading saved brain from file.");
-            NeuralNetwork savedBrain = LoadBrainFromFile();
+            Debug.Log("Loading saved brains from file.");
+            List<NeuralNetwork> savedBrains = LoadTopBrains();
             for (int i = 0; i < populationSize; i++)
             {
-                NeuralNetwork childBrain = new NeuralNetwork(savedBrain);
+                // Pick a random parent from the saved top brains
+                NeuralNetwork parentBrain = savedBrains[Random.Range(0, savedBrains.Count)];
+                NeuralNetwork childBrain = new NeuralNetwork(parentBrain);
                 childBrain.Mutate(0.1f, 0.1f);
                 startingBrains.Add(childBrain);
             }
@@ -101,10 +111,9 @@ public class SimulationManager : MonoBehaviour
             .OrderByDescending(o => o.fitness)
             .ToList();
 
-        if (sortedPopulation.Count < 4) // Need at least a few survivors to breed effectively
+        if (sortedPopulation.Count < 4)
         {
-            Debug.LogWarning("Extinction event or too few survivors! Starting a fresh random generation.");
-            // (Extinction logic remains the same)
+            Debug.LogWarning("Extinction event: Too few survivors. Starting fresh generation.");
             List<NeuralNetwork> nextGenerationBrains = new List<NeuralNetwork>();
             for (int i = 0; i < populationSize; i++)
             {
@@ -114,56 +123,36 @@ public class SimulationManager : MonoBehaviour
             return;
         }
 
-        SaveBestBrain(sortedPopulation[0].brain);
+        SaveTopBrains(sortedPopulation);
 
         List<NeuralNetwork> newBrains = new List<NeuralNetwork>();
 
-        // --- 1. Elitism (The Safety Net) ---
-        // Keep the top 5% of brains, unchanged.
-        int eliteCount = (int)(populationSize * 0.05f);
-        for (int i = 0; i < eliteCount; i++)
+        // 1. Elitism for top 10percent
+        int eliteCount = Mathf.Max(1, (int)(populationSize * 0.1f));
+        for (int i = 0; i < eliteCount && i < sortedPopulation.Count; i++)
         {
             newBrains.Add(new NeuralNetwork(sortedPopulation[i].brain));
         }
 
-        // --- 2. Random Immigrants (The Wild Cards) ---
-        // Add 5% of new, completely random brains to the mix.
+        // 2. Random Immigrants
         int randomCount = (int)(populationSize * 0.05f);
         for (int i = 0; i < randomCount; i++)
         {
             newBrains.Add(new NeuralNetwork(this.networkLayers));
         }
 
-        // --- 3. Rank-Weighted Breeding (The Core Logic) ---
-        // The remaining 90% are bred from the top 30% of survivors.
+        // 3. Crossover & Mutation
+        int parentPoolSize = (int)(sortedPopulation.Count * 0.5f);
+        parentPoolSize = Mathf.Max(parentPoolSize, 2); // Ensure we have at least 2 parents
+        List<NeuralNetwork> parentPool = sortedPopulation.Take(parentPoolSize).Select(c => c.brain).ToList();
 
-        // First, create a weighted "parent pool". Better parents get more "tickets".
-        List<NeuralNetwork> parentPool = new List<NeuralNetwork>();
-        int breederCount = (int)(sortedPopulation.Count * 0.03f);
-        breederCount = Mathf.Max(breederCount, 3); // Ensure at least some
-        for (int i = 0; i < breederCount; i++)
-        {
-            // The #1 ranked parent gets 'breederCount' copies in the pool.
-            // The #2 ranked parent gets 'breederCount - 1' copies, and so on.
-            int weight = breederCount - i;
-            for (int j = 0; j < weight; j++)
-            {
-                parentPool.Add(sortedPopulation[i].brain);
-            }
-        }
-
-        // Now, create the rest of the new generation by picking from the weighted pool.
         int remainingCount = populationSize - newBrains.Count;
         for (int i = 0; i < remainingCount; i++)
         {
-            // Pick a random parent. Better parents have a higher chance of being picked.
-            NeuralNetwork parent = parentPool[Random.Range(0, parentPool.Count)];
-            NeuralNetwork child = new NeuralNetwork(parent);
-            //TOP 3% of parents get a small mutation chance
-            if (i < 3)
-            {
-                child.Mutate(mutationRate, 0.2f);
-            }
+            NeuralNetwork parentA = parentPool[Random.Range(0, parentPool.Count)];
+            NeuralNetwork parentB = parentPool[Random.Range(0, parentPool.Count)];
+
+            NeuralNetwork child = NeuralNetwork.Crossover(parentA, parentB);
             child.Mutate(mutationRate, mutationStrength);
 
             newBrains.Add(child);
@@ -172,20 +161,33 @@ public class SimulationManager : MonoBehaviour
         StartNewGeneration(newBrains);
     }
 
-    private void SaveBestBrain(NeuralNetwork brain)
+    private void SaveTopBrains(List<Creature> sortedPopulation)
     {
-        NeuralNetworkData data = brain.GetData();
-        string json = JsonUtility.ToJson(data, true);
+        BrainSaveData saveData = new BrainSaveData();
+
+        int count = Mathf.Min(sortedPopulation.Count, topBrainsToSave);
+        for (int i = 0; i < count; i++)
+        {
+            saveData.brains.Add(sortedPopulation[i].brain.GetData());
+        }
+
+        string json = JsonUtility.ToJson(saveData, true);
         File.WriteAllText(savePath, json);
     }
 
-    private NeuralNetwork LoadBrainFromFile()
+    private List<NeuralNetwork> LoadTopBrains()
     {
         string json = File.ReadAllText(savePath);
-        NeuralNetworkData savedData = JsonUtility.FromJson<NeuralNetworkData>(json);
-        NeuralNetwork newBrain = new NeuralNetwork(this.networkLayers);
-        newBrain.LoadAndTransferData(savedData);
-        return newBrain;
+        BrainSaveData loadedData = JsonUtility.FromJson<BrainSaveData>(json);
+
+        List<NeuralNetwork> loadedBrains = new List<NeuralNetwork>();
+        foreach (var brainData in loadedData.brains)
+        {
+            NeuralNetwork brain = new NeuralNetwork(this.networkLayers);
+            brain.LoadAndTransferData(brainData);
+            loadedBrains.Add(brain);
+        }
+        return loadedBrains;
     }
 
     private Creature InstantiateCreature()

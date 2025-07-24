@@ -138,6 +138,36 @@ public class NeuralNetwork
         }
         return neurons[neurons.Length - 1];
     }
+
+    public static NeuralNetwork Crossover(NeuralNetwork parentA, NeuralNetwork parentB)
+    {
+        // Create a new child with the same architecture, but random initial weights/biases
+        NeuralNetwork child = new NeuralNetwork(parentA.layers);
+
+        // Iterate through each weight and randomly assign it from one of the parents
+        for (int i = 0; i < child.weights.Length; i++)
+        {
+            for (int j = 0; j < child.weights[i].Length; j++)
+            {
+                for (int k = 0; k < child.weights[i][j].Length; k++)
+                {
+                    child.weights[i][j][k] = UnityEngine.Random.value < 0.5f ?
+                        parentA.weights[i][j][k] :
+                        parentB.weights[i][j][k];
+                }
+            }
+        }
+
+        // Iterate through each bias and randomly assign it from one of the parents
+        for (int i = 0; i < child.biases.Length; i++)
+        {
+            child.biases[i] = UnityEngine.Random.value < 0.5f ?
+                parentA.biases[i] :
+                parentB.biases[i];
+        }
+        
+        return child;
+    }
     
     public void Mutate(float chance, float val)
     {

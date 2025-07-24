@@ -3,175 +3,145 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody2D))]
 public class Creature : MonoBehaviour
 {
-    // ... (Core Components, Energy, Traits, etc. are the same) ...
+    // Brain
     public NeuralNetwork brain;
+
+    // Components
     private Rigidbody2D rb;
+
+    // Vitals & State
     public float energy = 100f;
     public float fitness = 0f;
-    private float moveForce = 8f;
-    // private float jumpForce = 5f;
-    public float rotationForce = 1f;
-    private float detectionRadius = 10f;
-    private LayerMask groundLayer;
-    private LayerMask foodLayer;
-    private bool isGrounded;
     private bool isInWater;
-    private float originalGravityScale;
-    private float originalDrag;
+    private float lastDistanceToFood = float.MaxValue;
+    private bool isFacingRight = true;
+
+    // Physics & Movement
+    private float moveForce = 10f;
     public float underwaterGravityScale = 0f;
     public float underwaterDrag = 3f;
-    public StatusBar energyBar;
-    private Vector2 Forward => -transform.right;
+    private float originalGravityScale;
+    private float originalDrag;
 
+    // --- MODIFIED: Sensing ---
+    [Header("AI Sensing")]
+    public float whiskerLength = 5f;
+    public LayerMask groundLayer; // Assign "Ground" layer ONLY
+    public float foodDetectionRadius = 10f;
+    private float[] whiskerDebugDistances = new float[5]; 
+
+    // Layers
+    private LayerMask foodLayer;
 
     public void Init(NeuralNetwork brain)
     {
         this.brain = brain;
-        this.fitness = 0f; // Always reset fitness
+        this.fitness = 0f;
+        this.lastDistanceToFood = float.MaxValue;
     }
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-       
-        groundLayer = LayerMask.GetMask("Ground");
         foodLayer = LayerMask.GetMask("Food");
+        isFacingRight = true;
         originalGravityScale = rb.gravityScale;
-        originalDrag = rb.linearDamping; // Corrected from linearDamping
+        originalDrag = rb.linearDamping;
     }
 
     void FixedUpdate()
     {
         if (brain == null) return;
-
+        
         float[] inputs = GatherInputs();
         float[] outputs = brain.FeedForward(inputs);
         Act(outputs[0], outputs[1]);
 
-        // --- UPDATED: Fitness Calculation Logic ---
         UpdateFitness();
-
         energy -= (0.5f + rb.linearVelocity.magnitude * 0.1f) * Time.fixedDeltaTime;
-        energyBar.UpdateBar(energy, 100f);
-        if (energy <= 0)
-        {
-            Die();
-        }
+        if (energy <= 0) Die();
     }
 
-    // --- NEW: Centralized Fitness Logic ---
-    private void UpdateFitness()
-    {
-        // Small reward for surviving
-        fitness += Time.fixedDeltaTime * 0.01f;
-    }
-
+    // --- REWRITTEN: Hybrid input gathering ---
     private float[] GatherInputs()
     {
+        // 5 ground whiskers + 2 food direction + 2 velocity = 9 inputs
+        float[] inputs = new float[9];
+        Vector2 forward = isFacingRight ? Vector2.right : Vector2.left;
 
-        Transform closestFood = FindClosest(foodLayer);
-        bool seesFood = closestFood != null;
-        float foodAngle = 0f;
-        float foodDist = 1f; // Default to 1 (max distance)
-
-        if (seesFood)
+        // --- 1. Ground Detection (5 inputs) ---
+        float[] whiskerAngles = { -90f, -45f, 0f, 45f, 90f };
+        for (int i = 0; i < whiskerAngles.Length; i++)
         {
-            Vector2 toFood = closestFood.position - transform.position;
+            Vector2 direction = Quaternion.Euler(0, 0, whiskerAngles[i]) * forward;
+            RaycastHit2D hit = Physics2D.Raycast(transform.position, direction, whiskerLength, groundLayer);
 
-            //relative angle
-            foodAngle = Vector2.SignedAngle(this.Forward, toFood.normalized) / 180f; // Normalized -1 to 1
-
-            foodDist = toFood.magnitude / detectionRadius; // Normalized 0-1
+            inputs[i] = (hit.collider != null) ? (1f - (hit.distance / whiskerLength)) : 0f;
+            whiskerDebugDistances[i] = (hit.collider != null) ? hit.distance : whiskerLength;
         }
 
-        // Let's use 4 simple inputs for now.
-        // 1. How fast am I spinning?
-        // 2. Do I see food?
-        // 3. What angle is the food at?
-        // 4. How far is the food?
-        return new float[4]
+        // --- 2. Food Direction (2 inputs) ---
+        Transform closestFood = FindClosest(foodLayer, foodDetectionRadius);
+        Vector2 foodDirection = Vector2.zero;
+        if (closestFood != null)
         {
-            rb.angularVelocity / 360f, // Normalized rotation speed
-            seesFood ? 1f : 0f,
-            foodAngle,
-            foodDist
-        };
+            foodDirection = (closestFood.position - transform.position).normalized;
+        }
+        inputs[5] = foodDirection.x;
+        inputs[6] = foodDirection.y;
+
+        // --- 3. Self Velocity (2 inputs) ---
+        inputs[7] = rb.linearVelocity.x;
+        inputs[8] = rb.linearVelocity.y;
+
+        return inputs;
     }
 
-    private void Act(float turn, float thrust)
+    private void Act(float horizontalThrust, float verticalThrust)
     {
+        if (horizontalThrust > 0.1f && !isFacingRight) Flip();
+        else if (horizontalThrust < -0.1f && isFacingRight) Flip();
+        
         if (isInWater)
         {
-            // OUTPUT 1: Turn (-1 to 1)
-            // We use -turn because AddTorque is counter-clockwise. This makes a positive 'turn' value turn right.
-            rb.AddTorque(-turn * rotationForce);
-
-            // OUTPUT 2: Thrust (let's use 0 to 1 for simplicity, and represents forward direction only)
-            float thrustClamped = Mathf.Clamp01(thrust);
-            rb.AddForce(moveForce * thrustClamped * this.Forward);
-        }
-        else
-        {
-            // Land movement later
+            Vector2 force = new Vector2(horizontalThrust, verticalThrust) * moveForce;
+            rb.AddForce(force);
         }
     }
 
-    // --- UPDATED: Eat() now provides the big "jackpot" fitness reward ---
-    void Eat(Plant plant)
+    private void Flip()
     {
-        float energyGained = plant.BeEaten();
-        energy += energyGained;
-        if (energy > 200f) energy = 200f;
-
-        fitness += 30f; // Big reward for eating!
+        isFacingRight = !isFacingRight;
+        Vector3 scale = transform.localScale;
+        scale.x *= -1;
+        transform.localScale = scale;
     }
-
-
-    // ... (Triggers, FindClosest, Die, Gizmos functions are fine) ...
-    void OnTriggerEnter2D(Collider2D other)
+    
+    // Helper to see the ground-detecting whiskers
+    void OnDrawGizmosSelected()
     {
+        if (!Application.isPlaying) return;
 
+        Vector2 forward = isFacingRight ? Vector2.right : Vector2.left;
+        float[] whiskerAngles = { -90f, -45f, 0f, 45f, 90f };
 
-        if (other.CompareTag("Water"))
+        for (int i = 0; i < whiskerAngles.Length; i++)
         {
-            Debug.Log("Entered water  is it still running? This should only happen once.");
-            if (isInWater) return;
-            isInWater = true;
-            rb.gravityScale = underwaterGravityScale;
-            rb.linearDamping = underwaterDrag;
-        }
-        else if (other.CompareTag("Food"))
-        {
-            Plant plant = other.GetComponent<Plant>();
-            if (plant != null)
-            {
-                Eat(plant);
-            }
+            Vector2 direction = Quaternion.Euler(0, 0, whiskerAngles[i]) * forward;
+            float dist = whiskerDebugDistances[i];
+            Gizmos.color = dist < whiskerLength ? Color.red : Color.green;
+            Gizmos.DrawLine(transform.position, (Vector2)transform.position + direction * dist);
         }
     }
 
-    void OnTriggerExit2D(Collider2D other)
+    // --- Modified FindClosest to accept a radius ---
+    private Transform FindClosest(LayerMask layer, float radius)
     {
-
-        if (other.CompareTag("Water"))
-        {
-            if (!isInWater) return; // Prevents multiple exits
-            isInWater = false;
-
-            rb.gravityScale = originalGravityScale;
-            rb.linearDamping = originalDrag;
-        }
-    }
-    private Transform FindClosest(LayerMask layer, bool findOtherCreatures = false)
-    {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, detectionRadius, layer);
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, radius, layer);
         Transform closest = null;
         float minDistance = Mathf.Infinity;
-
         foreach (var hit in hits)
         {
-            if (findOtherCreatures && hit.gameObject == this.gameObject) continue;
-
             float distance = Vector2.Distance(transform.position, hit.transform.position);
             if (distance < minDistance)
             {
@@ -182,14 +152,52 @@ public class Creature : MonoBehaviour
         return closest;
     }
 
+    private void UpdateFitness()
+    {
+        Transform closestFood = FindClosest(foodLayer, foodDetectionRadius);
+        if (closestFood != null)
+        {
+            float currentDistance = Vector2.Distance(transform.position, closestFood.position);
+            if (currentDistance < lastDistanceToFood) fitness += 0.1f;
+            lastDistanceToFood = currentDistance;
+        }
+    }
+
+    void Eat(Plant plant)
+    {
+        float energyGained = plant.BeEaten();
+        energy += energyGained;
+        if (energy > 200f) energy = 200f;
+        fitness += 30f;
+    }
+
     private void Die()
     {
         gameObject.SetActive(false);
     }
 
-    void OnDrawGizmos()
+    void OnTriggerEnter2D(Collider2D other)
     {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
+        if (other.CompareTag("Water"))
+        {
+            isInWater = true;
+            rb.gravityScale = underwaterGravityScale;
+            rb.linearDamping = underwaterDrag;
+        }
+        else if (other.CompareTag("Food"))
+        {
+            Plant plant = other.GetComponent<Plant>();
+            if (plant != null) Eat(plant);
+        }
+    }
+
+    void OnTriggerExit2D(Collider2D other)
+    {
+        if (other.CompareTag("Water"))
+        {
+            isInWater = false;
+            rb.gravityScale = originalGravityScale;
+            rb.linearDamping = originalDrag;
+        }
     }
 }

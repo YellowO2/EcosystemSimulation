@@ -125,7 +125,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c999b4e9fc040413fab0ba864749bdae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  barFill: {fileID: 3317212782145747704}
+  barFill: {fileID: 0}
 --- !u!1 &2003193231976353223
 GameObject:
   m_ObjectHideFlags: 0
@@ -233,7 +233,7 @@ Rigidbody2D:
   m_UseAutoMass: 0
   m_Mass: 1
   m_LinearDamping: 0
-  m_AngularDamping: 0.05
+  m_AngularDamping: 1
   m_GravityScale: 1
   m_Material: {fileID: 0}
   m_IncludeLayers:
@@ -245,7 +245,7 @@ Rigidbody2D:
   m_Interpolate: 0
   m_SleepingMode: 1
   m_CollisionDetection: 0
-  m_Constraints: 0
+  m_Constraints: 4
 --- !u!114 &2231524213928188732
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -260,10 +260,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   energy: 300
   fitness: 0
-  rotationForce: 2
   underwaterGravityScale: 0
   underwaterDrag: 1
-  energyBar: {fileID: 1638570267729017565}
 --- !u!70 &6472146739618667928
 CapsuleCollider2D:
   m_ObjectHideFlags: 0
