@@ -23,7 +23,8 @@ public class WorldGenerator : MonoBehaviour
 
     [Header("References")]
     public Tilemap groundTilemap;
-    public Tilemap waterTilemap;
+    // public Tilemap waterTilemap; // tilemap is causing errors 
+    public PolygonCollider2D waterCollider;
     public Sprite tileSprite;
     public GameObject foodPrefab;
 
@@ -31,6 +32,7 @@ public class WorldGenerator : MonoBehaviour
     private Tile grassTile;
     private Tile waterTile;
     private List<Vector3> foodSpawnPoints = new List<Vector3>();
+    public int foodCount = 30;
 
 
     public void GenerateWorld(WorldType type)
@@ -54,52 +56,63 @@ public class WorldGenerator : MonoBehaviour
 
 
     private void GenerateWorld_Perlin()
-{
-    int startX = -worldWidth / 2;
-    int endX = worldWidth / 2;
-
-    // Boundary walls (no changes here)
-    for (int y = 0; y < groundLevel + 50; y++)
     {
-        groundTilemap.SetTile(new Vector3Int(startX, y, 0), dirtTile);
-        groundTilemap.SetTile(new Vector3Int(endX - 1, y, 0), dirtTile);
-    }
+        int startX = -worldWidth / 2;
+        int endX = worldWidth / 2;
+        var terrainPoints = new List<Vector2>();
 
-    for (int x = startX; x < endX; x++)
-    {
-        // --- Terrain Generation ---
-        float noiseValue = Mathf.PerlinNoise((x + worldWidth / 2f) * noiseScale + seed, seed);
-        int terrainHeight = groundLevel + (int)(noiseValue * noiseAmplitude);
-
-        groundTilemap.SetTile(new Vector3Int(x, terrainHeight, 0), grassTile);
-        for (int y = 0; y < terrainHeight; y++)
+        for (int y = 0; y < groundLevel + 100; y++)
         {
-            groundTilemap.SetTile(new Vector3Int(x, y, 0), dirtTile);
+            groundTilemap.SetTile(new Vector3Int(startX-1, y, 0), dirtTile);
+            groundTilemap.SetTile(new Vector3Int(endX, y, 0), dirtTile);
         }
 
-        // 1. Spawn some food on the sea floor
-        if (Random.value < 0.15f)
+        for (int x = startX; x < endX; x++)
         {
-            foodSpawnPoints.Add(new Vector3(x, terrainHeight + 1.5f, 0));
-        }
+            float noiseValue = Mathf.PerlinNoise((x + worldWidth / 2f) * noiseScale + seed, seed);
+            int terrainHeight = groundLevel + (int)(noiseValue * noiseAmplitude);
 
-        // 2. Spawn some food floating in the water
-        if (Random.value < 0.05f)
-        {
-            // Pick a random height between the sea floor and the water surface
-            float randomY = Random.Range(terrainHeight + 3f, waterLevel - 1f);
-            foodSpawnPoints.Add(new Vector3(x, randomY, 0));
-        }
-        // 3. Fill the water area with tiles
-        for (int y = 0; y < waterLevel; y++)
-        {
-            if (groundTilemap.GetTile(new Vector3Int(x, y, 0)) == null)
+            // A tile at (x,y) has its top edge at y+1. This is the "seafloor" level.
+            terrainPoints.Add(new Vector2(x, terrainHeight + 1));
+
+            groundTilemap.SetTile(new Vector3Int(x, terrainHeight, 0), grassTile);
+            for (int y = 0; y < terrainHeight; y++)
             {
-                waterTilemap.SetTile(new Vector3Int(x, y, 0), waterTile);
+                groundTilemap.SetTile(new Vector3Int(x, y, 0), dirtTile);
+            }
+
+            for (int y = terrainHeight + 1; y < waterLevel; y++)
+            {
+                // Draw visual water tiles directly onto the ground tilemap
+                groundTilemap.SetTile(new Vector3Int(x, y, 0), waterTile);
+            }
+
+            if (Random.value < 0.20f)
+            {
+                float randomY = Random.Range(terrainHeight + 3f, waterLevel - 1f);
+                foodSpawnPoints.Add(new Vector3(x, randomY, 0));
             }
         }
+
+        if (waterCollider != null)
+        {
+            var waterShapePoints = new List<Vector2>
+            {
+                // 1. Define the water surface
+                new Vector2(startX, waterLevel),
+                new Vector2(endX, waterLevel)
+            };
+
+            // 2. Add the seafloor points in reverse order to create the bottom edge
+            for (int i = terrainPoints.Count - 1; i >= 0; i--)
+            {
+                waterShapePoints.Add(terrainPoints[i]);
+            }
+
+            // 3. Apply the complete shape to the polygon collider
+            waterCollider.SetPath(0, waterShapePoints);
+        }
     }
-}
 
     private void GenerateWorld_Stairs()
     {
@@ -152,39 +165,63 @@ public class WorldGenerator : MonoBehaviour
 
     public void ResetFood()
     {
-        // 1. Destroy all old plants
+        // 1. Destroy all old food
         GameObject[] oldFood = GameObject.FindGameObjectsWithTag("Food");
         foreach (GameObject food in oldFood)
         {
             Destroy(food);
         }
 
-        // 2. Spawn new plants from our saved list of locations
-        foreach (var pos in foodSpawnPoints)
+        // 2. Spawn new food in random valid locations
+        Bounds waterBounds = waterCollider.bounds;
+        int spawnedCount = 0;
+        int attempts = 0; // Failsafe to prevent infinite loops
+
+        while (spawnedCount < foodCount && attempts < foodCount * 10)
         {
-            Instantiate(foodPrefab, pos, Quaternion.identity);
+            // Pick a random point within the collider's bounding box
+            Vector2 randomPoint = new Vector2(
+                Random.Range(waterBounds.min.x, waterBounds.max.x),
+                Random.Range(waterBounds.min.y, waterBounds.max.y)
+            );
+
+            // Check if the point is actually inside the water polygon
+            if (waterCollider.OverlapPoint(randomPoint))
+            {
+                Instantiate(foodPrefab, randomPoint, Quaternion.identity);
+                spawnedCount++;
+            }
+            attempts++;
         }
     }
 
     private void CreateTileTypes()
     {
         if (dirtTile != null) return;
+        // --- Dirt Tile ---
         dirtTile = ScriptableObject.CreateInstance<Tile>();
         dirtTile.sprite = tileSprite;
         dirtTile.color = new Color(0.5f, 0.3f, 0.1f);
+        // dirtTile.colliderType = Tile.ColliderType.Grid;
+
+        // --- Grass Tile ---
         grassTile = ScriptableObject.CreateInstance<Tile>();
         grassTile.sprite = tileSprite;
         grassTile.color = new Color(0.2f, 0.8f, 0.2f);
+        // grassTile.colliderType = Tile.ColliderType.Grid;
 
+        // --- Water Tile ---
         waterTile = ScriptableObject.CreateInstance<Tile>();
         waterTile.sprite = tileSprite;
-        waterTile.color = new Color(0.1f, 0.3f, 0.8f, 0.7f); // Added transparency
+        waterTile.color = new Color(0.1f, 0.3f, 0.8f, 0.7f);
+        waterTile.colliderType = Tile.ColliderType.None; // we will use a PolygonCollider2D instead
     }
 
     private void ClearWorld()
     {
         groundTilemap.ClearAllTiles();
-        waterTilemap.ClearAllTiles();
+        foodSpawnPoints.Clear();
+        // waterTilemap.ClearAllTiles();
         GameObject[] foodItems = GameObject.FindGameObjectsWithTag("Food");
 
         foreach (GameObject food in foodItems) { Destroy(food); }

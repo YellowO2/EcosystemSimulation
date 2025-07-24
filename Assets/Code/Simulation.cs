@@ -22,7 +22,7 @@ public class SimulationManager : MonoBehaviour
     public float mutationStrength = 0.5f;
 
     private List<Creature> population = new List<Creature>();
-    private int[] networkLayers = new int[] { 6, 5, 2 };
+    private int[] networkLayers = new int[] { 4, 3, 2 };
     private int generation = 0;
     private float timer;
 
@@ -55,7 +55,7 @@ public class SimulationManager : MonoBehaviour
                 startingBrains.Add(new NeuralNetwork(networkLayers));
             }
         }
-        
+
         worldGenerator.GenerateWorld(worldToGenerate);
         StartNewGeneration(startingBrains);
     }
@@ -74,7 +74,7 @@ public class SimulationManager : MonoBehaviour
         generation++;
         timer = 0f;
         Debug.Log("Starting Generation: " + generation);
-        
+
         // 3. ADD THIS LINE to update the text display
         generationText.text = $"Generation: {generation}";
 
@@ -94,24 +94,17 @@ public class SimulationManager : MonoBehaviour
 
     private void EvolvePopulation()
     {
-        worldGenerator.ResetFood(); 
-        
-        foreach (var creature in population)
-        {
-            if (creature != null && creature.gameObject.activeSelf)
-            {
-                creature.fitness = creature.energy;
-            }
-        }
-        
+        worldGenerator.ResetFood();
+
         List<Creature> sortedPopulation = population
             .Where(c => c != null && c.gameObject.activeSelf)
             .OrderByDescending(o => o.fitness)
             .ToList();
 
-        if (sortedPopulation.Count == 0)
+        if (sortedPopulation.Count < 4) // Need at least a few survivors to breed effectively
         {
-            Debug.LogWarning("Extinction event! Starting a fresh random generation.");
+            Debug.LogWarning("Extinction event or too few survivors! Starting a fresh random generation.");
+            // (Extinction logic remains the same)
             List<NeuralNetwork> nextGenerationBrains = new List<NeuralNetwork>();
             for (int i = 0; i < populationSize; i++)
             {
@@ -120,22 +113,60 @@ public class SimulationManager : MonoBehaviour
             StartNewGeneration(nextGenerationBrains);
             return;
         }
-        
+
         SaveBestBrain(sortedPopulation[0].brain);
-        
+
         List<NeuralNetwork> newBrains = new List<NeuralNetwork>();
-        int eliteCount = Mathf.Max(1, (int)(sortedPopulation.Count * 0.1f));
+
+        // --- 1. Elitism (The Safety Net) ---
+        // Keep the top 5% of brains, unchanged.
+        int eliteCount = (int)(populationSize * 0.05f);
         for (int i = 0; i < eliteCount; i++)
         {
             newBrains.Add(new NeuralNetwork(sortedPopulation[i].brain));
         }
-        
-        for (int i = eliteCount; i < populationSize; i++)
+
+        // --- 2. Random Immigrants (The Wild Cards) ---
+        // Add 5% of new, completely random brains to the mix.
+        int randomCount = (int)(populationSize * 0.05f);
+        for (int i = 0; i < randomCount; i++)
         {
-            NeuralNetwork parentBrain = newBrains[Random.Range(0, eliteCount)];
-            NeuralNetwork childBrain = new NeuralNetwork(parentBrain);
-            childBrain.Mutate(mutationRate, mutationStrength);
-            newBrains.Add(childBrain);
+            newBrains.Add(new NeuralNetwork(this.networkLayers));
+        }
+
+        // --- 3. Rank-Weighted Breeding (The Core Logic) ---
+        // The remaining 90% are bred from the top 30% of survivors.
+
+        // First, create a weighted "parent pool". Better parents get more "tickets".
+        List<NeuralNetwork> parentPool = new List<NeuralNetwork>();
+        int breederCount = (int)(sortedPopulation.Count * 0.03f);
+        breederCount = Mathf.Max(breederCount, 3); // Ensure at least some
+        for (int i = 0; i < breederCount; i++)
+        {
+            // The #1 ranked parent gets 'breederCount' copies in the pool.
+            // The #2 ranked parent gets 'breederCount - 1' copies, and so on.
+            int weight = breederCount - i;
+            for (int j = 0; j < weight; j++)
+            {
+                parentPool.Add(sortedPopulation[i].brain);
+            }
+        }
+
+        // Now, create the rest of the new generation by picking from the weighted pool.
+        int remainingCount = populationSize - newBrains.Count;
+        for (int i = 0; i < remainingCount; i++)
+        {
+            // Pick a random parent. Better parents have a higher chance of being picked.
+            NeuralNetwork parent = parentPool[Random.Range(0, parentPool.Count)];
+            NeuralNetwork child = new NeuralNetwork(parent);
+            //TOP 3% of parents get a small mutation chance
+            if (i < 3)
+            {
+                child.Mutate(mutationRate, 0.2f);
+            }
+            child.Mutate(mutationRate, mutationStrength);
+
+            newBrains.Add(child);
         }
 
         StartNewGeneration(newBrains);
@@ -159,7 +190,7 @@ public class SimulationManager : MonoBehaviour
 
     private Creature InstantiateCreature()
     {
-        Vector3 spawnPos = new Vector3(0, worldGenerator.groundLevel + 15f, 0);
+        Vector3 spawnPos = new Vector3(0, worldGenerator.groundLevel + 20f, 0);
         return Instantiate(creaturePrefab, spawnPos, Quaternion.identity).GetComponent<Creature>();
     }
 

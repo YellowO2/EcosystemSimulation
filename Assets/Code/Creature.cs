@@ -3,51 +3,41 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody2D))]
 public class Creature : MonoBehaviour
 {
-    // --- Core Components ---
+    // ... (Core Components, Energy, Traits, etc. are the same) ...
     public NeuralNetwork brain;
     private Rigidbody2D rb;
-
-    // --- Fitness & Survival ---
     public float energy = 100f;
     public float fitness = 0f;
-
-    // --- Physical Traits ---
-    private float moveForce = 5f; // CHANGED: Renamed from moveSpeed to reflect force application
-    private float jumpForce = 5f;
-
-    // --- Senses ---
-    private float detectionRadius = 15f;
+    private float moveForce = 8f;
+    // private float jumpForce = 5f;
+    public float rotationForce = 1f;
+    private float detectionRadius = 10f;
     private LayerMask groundLayer;
     private LayerMask foodLayer;
-    private LayerMask creatureLayer;
     private bool isGrounded;
-    private bool isInWater; //currrently i am using tags to detect water, not sure if this is the best way
-
-    // --- Physics State ---
+    private bool isInWater;
     private float originalGravityScale;
     private float originalDrag;
-
-    [Header("Water Physics")]
-    public float underwaterGravityScale = 0.2f;
+    public float underwaterGravityScale = 0f;
     public float underwaterDrag = 3f;
-
-    // --- UI ---
     public StatusBar energyBar;
+    private Vector2 Forward => -transform.right;
+
 
     public void Init(NeuralNetwork brain)
     {
         this.brain = brain;
+        this.fitness = 0f; // Always reset fitness
     }
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+       
         groundLayer = LayerMask.GetMask("Ground");
         foodLayer = LayerMask.GetMask("Food");
-        creatureLayer = LayerMask.GetMask("Creature");
-
         originalGravityScale = rb.gravityScale;
-        originalDrag = rb.linearDamping; // drag is outdated i think, use linearDamping instead
+        originalDrag = rb.linearDamping; // Corrected from linearDamping
     }
 
     void FixedUpdate()
@@ -56,11 +46,12 @@ public class Creature : MonoBehaviour
 
         float[] inputs = GatherInputs();
         float[] outputs = brain.FeedForward(inputs);
-
-        // --- CHANGED: Use a single Action function ---
         Act(outputs[0], outputs[1]);
 
-        energy -= (0.5f + Mathf.Abs(rb.linearVelocity.magnitude) * 0.1f) * Time.fixedDeltaTime; // More dynamic energy cost
+        // --- UPDATED: Fitness Calculation Logic ---
+        UpdateFitness();
+
+        energy -= (0.5f + rb.linearVelocity.magnitude * 0.1f) * Time.fixedDeltaTime;
         energyBar.UpdateBar(energy, 100f);
         if (energy <= 0)
         {
@@ -68,57 +59,87 @@ public class Creature : MonoBehaviour
         }
     }
 
+    // --- NEW: Centralized Fitness Logic ---
+    private void UpdateFitness()
+    {
+        // Small reward for surviving
+        fitness += Time.fixedDeltaTime * 0.01f;
+    }
+
     private float[] GatherInputs()
     {
-        isGrounded = Physics2D.Raycast(transform.position, Vector2.down, 1.1f, groundLayer);
-        Transform closestFood = FindClosest(foodLayer);
-        Vector2 foodDir = closestFood ? (closestFood.position - transform.position).normalized : Vector2.zero;
 
-        return new float[6]
+        Transform closestFood = FindClosest(foodLayer);
+        bool seesFood = closestFood != null;
+        float foodAngle = 0f;
+        float foodDist = 1f; // Default to 1 (max distance)
+
+        if (seesFood)
         {
-            isGrounded ? 1f : 0f,
-            rb.linearVelocity.x / 10f,
-            rb.linearVelocity.y / 10f,
-            foodDir.x,
-            foodDir.y,
-            isInWater ? 1f : 0f
+            Vector2 toFood = closestFood.position - transform.position;
+
+            //relative angle
+            foodAngle = Vector2.SignedAngle(this.Forward, toFood.normalized) / 180f; // Normalized -1 to 1
+
+            foodDist = toFood.magnitude / detectionRadius; // Normalized 0-1
+        }
+
+        // Let's use 4 simple inputs for now.
+        // 1. How fast am I spinning?
+        // 2. Do I see food?
+        // 3. What angle is the food at?
+        // 4. How far is the food?
+        return new float[4]
+        {
+            rb.angularVelocity / 360f, // Normalized rotation speed
+            seesFood ? 1f : 0f,
+            foodAngle,
+            foodDist
         };
     }
 
-    // --- NEW: Unified action function ---
-    private void Act(float horizontal, float vertical)
+    private void Act(float turn, float thrust)
     {
         if (isInWater)
         {
-            // In water, apply continuous force for swimming
-            Vector2 swimForce = new Vector2(horizontal, vertical) * moveForce;
-            rb.AddForce(swimForce);
-        }
-        else if (isGrounded)
-        {
-            // On land, set horizontal velocity directly for responsiveness
-            rb.linearVelocity = new Vector2(horizontal * moveForce, rb.linearVelocity.y);
+            // OUTPUT 1: Turn (-1 to 1)
+            // We use -turn because AddTorque is counter-clockwise. This makes a positive 'turn' value turn right.
+            rb.AddTorque(-turn * rotationForce);
 
-            // On land, vertical is an impulse jump, only if positive
-            if (vertical > 0)
-            {
-                rb.AddForce(new Vector2(0f, vertical * jumpForce), ForceMode2D.Impulse);
-                energy -= 0.5f * vertical; // Jumping costs energy based on force
-            }
+            // OUTPUT 2: Thrust (let's use 0 to 1 for simplicity, and represents forward direction only)
+            float thrustClamped = Mathf.Clamp01(thrust);
+            rb.AddForce(moveForce * thrustClamped * this.Forward);
+        }
+        else
+        {
+            // Land movement later
         }
     }
 
-    // --- REMOVED: Old Move() and Jump() functions are now replaced by Act() ---
+    // --- UPDATED: Eat() now provides the big "jackpot" fitness reward ---
+    void Eat(Plant plant)
+    {
+        float energyGained = plant.BeEaten();
+        energy += energyGained;
+        if (energy > 200f) energy = 200f;
 
+        fitness += 30f; // Big reward for eating!
+    }
+
+
+    // ... (Triggers, FindClosest, Die, Gizmos functions are fine) ...
     void OnTriggerEnter2D(Collider2D other)
     {
+
+
         if (other.CompareTag("Water"))
         {
+            Debug.Log("Entered water  is it still running? This should only happen once.");
+            if (isInWater) return;
             isInWater = true;
             rb.gravityScale = underwaterGravityScale;
             rb.linearDamping = underwaterDrag;
         }
-        // --- FIXED: Eat on trigger enter, not exit ---
         else if (other.CompareTag("Food"))
         {
             Plant plant = other.GetComponent<Plant>();
@@ -131,21 +152,16 @@ public class Creature : MonoBehaviour
 
     void OnTriggerExit2D(Collider2D other)
     {
+
         if (other.CompareTag("Water"))
         {
+            if (!isInWater) return; // Prevents multiple exits
             isInWater = false;
+
             rb.gravityScale = originalGravityScale;
             rb.linearDamping = originalDrag;
         }
     }
-
-    void Eat(Plant plant)
-    {
-        float energyGained = plant.BeEaten();
-        energy += energyGained;
-        if (energy > 100f) energy = 100f;
-    }
-
     private Transform FindClosest(LayerMask layer, bool findOtherCreatures = false)
     {
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, detectionRadius, layer);
