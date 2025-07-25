@@ -4,18 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-[System.Serializable]
-public struct TileChange
-{
-    public Vector3Int position;
-    public string tileName;
-}
-
-[System.Serializable]
-public class MapSaveData
-{
-    public List<TileChange> changes = new List<TileChange>();
-}
 
 public class WorldGenerator : MonoBehaviour
 {
@@ -26,6 +14,7 @@ public class WorldGenerator : MonoBehaviour
     public int groundLevel = 5;
     public int waterLevel = 10;
     public int foodCount = 30;
+    public WorldType worldToGenerate;
 
     [Header("Noise Settings")]
     public float noiseScale = 0.1f;
@@ -41,23 +30,21 @@ public class WorldGenerator : MonoBehaviour
     public Tilemap groundTilemap;
     public PolygonCollider2D waterCollider;
     public GameObject foodPrefab;
-    
+
     [Header("Tile Assets")]
     public Tile dirtTile;
     public Tile grassTile;
     public Tile waterTile;
-
     private Dictionary<Vector3Int, string> mapChanges = new Dictionary<Vector3Int, string>();
     private Dictionary<string, TileBase> tileAssets;
-    private string savePath;
 
-    public void GenerateWorld(WorldType type)
+    void Awake()
     {
-        savePath = Application.dataPath + "/mapChanges.json";
         InitializeTileAssets();
-        seed = Random.Range(0, 1000);
-        ClearWorld();
+    }
 
+    public void GenerateBaseWorld(WorldType type)
+    {
         switch (type)
         {
             case WorldType.Perlin:
@@ -67,9 +54,6 @@ public class WorldGenerator : MonoBehaviour
                 GenerateWorld_Stairs();
                 break;
         }
-
-        LoadMapChanges();
-        ResetFood();
     }
 
     public void SetTile(Vector3Int position, TileBase tile)
@@ -79,30 +63,45 @@ public class WorldGenerator : MonoBehaviour
         mapChanges[position] = tileName;
     }
 
-    private void SaveMapChanges()
+    public void PackWorldData(WorldSaveState state)
     {
-        if (mapChanges.Count == 0) return;
+        state.worldType = this.worldToGenerate;
+        state.worldGenSeed = this.seed;
 
-        MapSaveData saveData = new MapSaveData();
-        saveData.changes = mapChanges.Select(c => new TileChange { position = c.Key, tileName = c.Value }).ToList();
-        string json = JsonUtility.ToJson(saveData, true);
-        File.WriteAllText(savePath, json);
-        Debug.Log($"Saved {mapChanges.Count} map changes.");
+        // Convert dictionary of map changes to a list for serialization
+        state.mapChanges = mapChanges.Select(kv => new TileChange { position = kv.Key, tileName = kv.Value }).ToList();
+
+        // Find all food objects and save their positions
+        state.foodPositions.Clear();
+        GameObject[] foodItems = GameObject.FindGameObjectsWithTag("Food");
+        foreach (var food in foodItems)
+        {
+            state.foodPositions.Add(food.transform.position);
+        }
     }
 
-    private void LoadMapChanges()
+    public void LoadWorldFromState(WorldSaveState state)
     {
-        if (!File.Exists(savePath)) return;
+        worldToGenerate = state.worldType;
+        seed = state.worldGenSeed;
 
-        string json = File.ReadAllText(savePath);
-        MapSaveData loadedData = JsonUtility.FromJson<MapSaveData>(json);
+        ClearWorld();
+        GenerateBaseWorld(worldToGenerate);
 
-        foreach (var change in loadedData.changes)
+        // Apply custom tile changes
+        foreach (var change in state.mapChanges)
         {
             tileAssets.TryGetValue(change.tileName, out TileBase tileToSet);
-            SetTile(change.position, tileToSet);
+            // We use SetTile without recording the change again
+            groundTilemap.SetTile(change.position, tileToSet);
+            mapChanges[change.position] = change.tileName; // Re-populate the dictionary
         }
-        Debug.Log($"Loaded and applied {loadedData.changes.Count} map changes.");
+
+        // Spawn food at saved positions
+        foreach (var pos in state.foodPositions)
+        {
+            Instantiate(foodPrefab, pos, Quaternion.identity);
+        }
     }
 
     private void InitializeTileAssets()
@@ -114,10 +113,15 @@ public class WorldGenerator : MonoBehaviour
             { waterTile.name, waterTile }
         };
     }
-    
-    void OnApplicationQuit()
+
+    public void GenerateNewWorld(WorldType type)
     {
-        SaveMapChanges();
+        this.worldToGenerate = type;
+        this.seed = Random.Range(0, 1000f); // Generate a new, random seed
+
+        ClearWorld();
+        GenerateBaseWorld(type);
+        ResetFood();
     }
 
     private void GenerateWorld_Perlin()
@@ -128,7 +132,7 @@ public class WorldGenerator : MonoBehaviour
 
         for (int y = 0; y < groundLevel + 100; y++)
         {
-            groundTilemap.SetTile(new Vector3Int(startX-1, y, 0), dirtTile);
+            groundTilemap.SetTile(new Vector3Int(startX - 1, y, 0), dirtTile);
             groundTilemap.SetTile(new Vector3Int(endX, y, 0), dirtTile);
         }
 
@@ -200,6 +204,25 @@ public class WorldGenerator : MonoBehaviour
         {
             groundTilemap.SetTile(new Vector3Int(currentX, groundLevel + h, 0), dirtTile);
         }
+    }
+
+    //MANAGING FUNCTIONS ------
+
+    public Vector2 GetRandomSpawnPointOnGround()
+    {
+        float randomX = Random.Range(-worldWidth / 2f + 1, worldWidth / 2f - 1);
+        Vector2 rayStart = new Vector2(randomX, 100); // Start raycast from high up
+
+        RaycastHit2D hit = Physics2D.Raycast(rayStart, Vector2.down, 200);
+
+        if (hit.collider != null)
+        {
+            // Spawn just above the point of impact
+            return hit.point + new Vector2(0, 1f);
+        }
+
+        // Fallback in case raycast fails (e.g., no ground below)
+        return new Vector2(0, groundLevel + 1);
     }
 
     public void ResetFood()

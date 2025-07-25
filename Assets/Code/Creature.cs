@@ -1,16 +1,26 @@
 using UnityEngine;
+using System;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class Creature : MonoBehaviour
 {
+    public static event Action<Creature> OnCreatureBorn;
+
+    [Header("Identity")]
+    public string speciesName { get; private set; }
     public NeuralNetwork brain;
-    private Rigidbody2D rb;
-    
+
+    [Header("State")]
     public float energy = 100f;
     public float fitness = 0f;
+
+    [Header("Reproduction")]
+    public float energyToReproduce = 150f;
+    public float reproductionEnergyCost = 60f;
+
+    [Header("Physics")]
+    private Rigidbody2D rb;
     private bool isInWater;
-    private float lastDistanceToFood = float.MaxValue;
-    
     private float moveForce = 10f;
     public float underwaterGravityScale = 0f;
     public float underwaterDrag = 3f;
@@ -23,12 +33,15 @@ public class Creature : MonoBehaviour
     public float predatorDetectionRadius = 8f;
     public LayerMask groundLayer;
     public LayerMask predatorLayer;
-    public LayerMask foodLayer; // This now defines what the creature eats
+    public LayerMask foodLayer;
+    private float lastDistanceToFood = float.MaxValue;
     private float[] whiskerDebugDistances = new float[5];
 
-    public void Init(NeuralNetwork brain)
+    public void Init(NeuralNetwork brain, string speciesName)
     {
+        this.speciesName = speciesName;
         this.brain = brain;
+        this.energy = 100f;
         this.fitness = 0f;
         this.lastDistanceToFood = float.MaxValue;
     }
@@ -49,18 +62,31 @@ public class Creature : MonoBehaviour
         Act(outputs[0], outputs[1]);
 
         UpdateFitness();
+        
         energy -= (0.5f + rb.linearVelocity.magnitude * 0.1f) * Time.fixedDeltaTime;
-        if (energy <= 0) Die();
+
+        if (energy >= energyToReproduce)
+        {
+            Reproduce();
+        }
+        if (energy <= 0)
+        {
+            Die();
+        }
+    }
+
+    private void Reproduce()
+    {
+        energy -= reproductionEnergyCost;
+        OnCreatureBorn?.Invoke(this); 
     }
 
     private float[] GatherInputs()
     {
-        // 5 ground whiskers + 2 food dir + 2 predator dir + 2 velocity = 11 inputs
         float[] inputs = new float[11];
         Vector2 forward = transform.right;
         float[] whiskerAngles = { -90f, -45f, 0f, 45f, 90f };
 
-        // 1. Ground Detection (5 inputs)
         for (int i = 0; i < whiskerAngles.Length; i++)
         {
             Vector2 direction = Quaternion.Euler(0, 0, whiskerAngles[i]) * forward;
@@ -69,7 +95,6 @@ public class Creature : MonoBehaviour
             whiskerDebugDistances[i] = (groundHit.collider != null) ? groundHit.distance : whiskerLength;
         }
 
-        // 2. Food Direction (2 inputs)
         Transform closestFood = FindClosest(foodLayer, foodDetectionRadius);
         Vector2 foodDirection = Vector2.zero;
         if (closestFood != null)
@@ -79,7 +104,6 @@ public class Creature : MonoBehaviour
         inputs[5] = foodDirection.x;
         inputs[6] = foodDirection.y;
         
-        // 3. Predator Direction (2 inputs)
         Transform closestPredator = FindClosest(predatorLayer, predatorDetectionRadius);
         Vector2 predatorDirection = Vector2.zero;
         if (closestPredator != null)
@@ -89,9 +113,8 @@ public class Creature : MonoBehaviour
         inputs[7] = predatorDirection.x;
         inputs[8] = predatorDirection.y;
 
-        // 4. Self Velocity (2 inputs)
-        inputs[9] = rb.linearVelocity.x;
-        inputs[10] = rb.linearVelocity.y;
+        inputs[9] = rb.velocity.x;
+        inputs[10] = rb.velocity.y;
 
         return inputs;
     }
@@ -104,16 +127,15 @@ public class Creature : MonoBehaviour
             rb.AddForce(force);
         }
 
-        if (rb.linearVelocity.sqrMagnitude > 0.01f) 
+        if (rb.velocity.sqrMagnitude > 0.01f) 
         {
-            float angle = Mathf.Atan2(rb.linearVelocity.y, rb.linearVelocity.x) * Mathf.Rad2Deg;
+            float angle = Mathf.Atan2(rb.velocity.y, rb.velocity.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
         }
     }
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        Debug.Log("Creature collided with: " + other.name);
         if (other.CompareTag("Water"))
         {
             isInWater = true;
@@ -122,10 +144,8 @@ public class Creature : MonoBehaviour
             return;
         }
 
-        // Check if the collided object's layer is in our 'foodLayer' mask
         if ((foodLayer.value & (1 << other.gameObject.layer)) != 0)
         {
-            // Try to eat it as a Plant
             Plant plant = other.GetComponent<Plant>();
             if (plant != null)
             {
@@ -133,12 +153,9 @@ public class Creature : MonoBehaviour
                 return;
             }
             
-            Debug.Log("Found a food item: " + other.name);
-            // Try to eat it as a Creature
             Creature creature = other.GetComponentInParent<Creature>();
-            if (creature != null)
+            if (creature != null && creature != this)
             {
-                Debug.Log("Creature detected.");
                 creature.Die();
                 this.energy += 50f;
                 this.fitness += 50f;
@@ -184,8 +201,6 @@ public class Creature : MonoBehaviour
         float minDistance = Mathf.Infinity;
         foreach (var hit in hits)
         {
-            //debug log for if pray is creature
-            if (hit.CompareTag("Creature")) Debug.Log("Found a creature in the layer: " + hit.name);
             float distance = Vector2.Distance(transform.position, hit.transform.position);
             if (distance < minDistance)
             {
@@ -202,7 +217,10 @@ public class Creature : MonoBehaviour
         if (closestFood != null)
         {
             float currentDistance = Vector2.Distance(transform.position, closestFood.position);
-            if (currentDistance < lastDistanceToFood) fitness += 0.1f;
+            if (currentDistance < lastDistanceToFood)
+            {
+                fitness += 0.1f;
+            }
             lastDistanceToFood = currentDistance;
         }
     }
@@ -217,6 +235,6 @@ public class Creature : MonoBehaviour
 
     public void Die()
     {
-        gameObject.SetActive(false);
+        Destroy(gameObject);
     }
 }
