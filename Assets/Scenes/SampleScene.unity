@@ -295,7 +295,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_GravityScale: 1
+  m_GravityScale: 0
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -865,14 +865,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   generationText: {fileID: 896439561}
   creaturePrefab: {fileID: 2003193231976353223, guid: 4010a6a65a956471aa0d6f29aaeffa4f, type: 3}
+  predatorPrefab: {fileID: 126107785529659558, guid: 96ecb4ab88a2d7a4daa2b004918624a8, type: 3}
   worldGenerator: {fileID: 1212217362}
   worldToGenerate: 0
-  populationSize: 20
   simulationTime: 63
-  timeScale: 2
-  mutationRate: 0.2
-  mutationStrength: 0.1
+  timeScale: 5
   topBrainsToSave: 10
+  preyPopulationSize: 20
+  preyMutationRate: 0.1
+  preyMutationStrength: 0.1
+  predatorPopulationSize: 3
+  predatorMutationRate: 0.15
+  predatorMutationStrength: 0.15
 --- !u!224 &934909957
 RectTransform:
   m_ObjectHideFlags: 0

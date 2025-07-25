@@ -139,5 +139,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   timeToMature: 20
   sproutColor: {r: 0, g: 1, b: 0, a: 1}
-  matureColor: {r: 1, g: 0.4522664, b: 0.0047169924, a: 1}
+  matureColor: {r: 1, g: 0, b: 0.5375433, a: 1}
   maxFoodValue: 25

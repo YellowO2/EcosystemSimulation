@@ -2,72 +2,59 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
-using TMPro; // 1. ADD THIS LINE to use TextMeshPro
+using TMPro;
 
 public class SimulationManager : MonoBehaviour
 {
-    [Header("UI Elements")] // A new header for organization
-    public TextMeshProUGUI generationText; // 2. ADD THIS LINE to reference the text object
+    [Header("UI Elements")]
+    public TextMeshProUGUI generationText;
 
-    [Header("Simulation Setup")]
+    [Header("World Setup")]
     public GameObject creaturePrefab;
+    public GameObject predatorPrefab;
     public WorldGenerator worldGenerator;
     public WorldGenerator.WorldType worldToGenerate;
 
-    [Header("Simulation Parameters")]
-    public int populationSize = 50;
+    [Header("Evolution Parameters")]
     public float simulationTime = 120f;
     [Range(1f, 100f)] public float timeScale = 10f;
-    public float mutationRate = 0.1f;
-    public float mutationStrength = 0.1f;
+    public int topBrainsToSave = 5;
 
-    private List<Creature> population = new List<Creature>();
-    private int[] networkLayers = new int[] { 9, 6, 2 };
+    [Header("Prey Population")]
+    public int preyPopulationSize = 50;
+    public float preyMutationRate = 0.1f;
+    public float preyMutationStrength = 0.1f;
+    private List<Creature> preyPopulation = new List<Creature>();
+    private int[] preyNetworkLayers = new int[] { 11, 8, 2 };
+    private const string PREY_SAVE_FILE = "/preyBrains.json";
+    
+    [Header("Predator Population")]
+    public int predatorPopulationSize = 5;
+    public float predatorMutationRate = 0.15f;
+    public float predatorMutationStrength = 0.15f;
+    private List<Creature> predatorPopulation = new List<Creature>();
+    private int[] predatorNetworkLayers = new int[] { 11, 8, 2 };
+    private const string PREDATOR_SAVE_FILE = "/predatorBrains.json";
+
     private int generation = 0;
     private float timer;
 
-    // private const string SAVE_FILE_NAME = "/bestBrain.json";
-    private const string SAVE_FILE_NAME = "/topBrains.json";
-    private string savePath;
-    public int topBrainsToSave = 10;
-
     [System.Serializable]
-    public class BrainSaveData
-    {
-        public List<NeuralNetworkData> brains = new List<NeuralNetworkData>();
+    public class BrainSaveData 
+    { 
+        public int generation;
+        public List<NeuralNetworkData> brains = new List<NeuralNetworkData>(); 
     }
 
     void Start()
     {
         Time.timeScale = this.timeScale;
-        savePath = Application.dataPath + SAVE_FILE_NAME;
 
-        List<NeuralNetwork> startingBrains = new List<NeuralNetwork>();
-
-        if (File.Exists(savePath))
-        {
-            Debug.Log("Loading saved brains from file.");
-            List<NeuralNetwork> savedBrains = LoadTopBrains();
-            for (int i = 0; i < populationSize; i++)
-            {
-                // Pick a random parent from the saved top brains
-                NeuralNetwork parentBrain = savedBrains[Random.Range(0, savedBrains.Count)];
-                NeuralNetwork childBrain = new NeuralNetwork(parentBrain);
-                childBrain.Mutate(0.1f, 0.1f);
-                startingBrains.Add(childBrain);
-            }
-        }
-        else
-        {
-            Debug.Log("No save file found. Creating fresh population.");
-            for (int i = 0; i < populationSize; i++)
-            {
-                startingBrains.Add(new NeuralNetwork(networkLayers));
-            }
-        }
+        List<NeuralNetwork> startingPreyBrains = LoadTopBrains(Application.dataPath + PREY_SAVE_FILE, preyNetworkLayers, preyPopulationSize);
+        List<NeuralNetwork> startingPredatorBrains = LoadTopBrains(Application.dataPath + PREDATOR_SAVE_FILE, predatorNetworkLayers, predatorPopulationSize);
 
         worldGenerator.GenerateWorld(worldToGenerate);
-        StartNewGeneration(startingBrains);
+        StartNewGeneration(startingPreyBrains, startingPredatorBrains);
     }
 
     void Update()
@@ -75,125 +62,138 @@ public class SimulationManager : MonoBehaviour
         timer += Time.deltaTime;
         if (timer >= simulationTime)
         {
-            EvolvePopulation();
+            EvolvePopulations();
         }
     }
 
-    private void StartNewGeneration(List<NeuralNetwork> newBrains)
+    private void StartNewGeneration(List<NeuralNetwork> preyBrains, List<NeuralNetwork> predatorBrains)
     {
         generation++;
         timer = 0f;
+        generationText.text = $"Generation: {generation}";
         Debug.Log("Starting Generation: " + generation);
 
-        // 3. ADD THIS LINE to update the text display
-        generationText.text = $"Generation: {generation}";
+        foreach (var c in preyPopulation) { if (c != null) Destroy(c.gameObject); }
+        foreach (var p in predatorPopulation) { if (p != null) Destroy(p.gameObject); }
+        preyPopulation.Clear();
+        predatorPopulation.Clear();
 
-        foreach (var creature in population)
+        foreach (var brain in preyBrains)
         {
-            if (creature != null) Destroy(creature.gameObject);
+            Creature prey = Instantiate(creaturePrefab, new Vector3(0, worldGenerator.groundLevel + 20f, 0), Quaternion.identity).GetComponent<Creature>();
+            prey.Init(brain);
+            preyPopulation.Add(prey);
         }
-        population.Clear();
 
-        foreach (var brain in newBrains)
+        foreach (var brain in predatorBrains)
         {
-            Creature creature = InstantiateCreature();
-            creature.Init(brain);
-            population.Add(creature);
+            Creature predator = Instantiate(predatorPrefab, new Vector3(0, worldGenerator.waterLevel/2, 0), Quaternion.identity).GetComponent<Creature>();
+            predator.Init(brain);
+            predatorPopulation.Add(predator);
         }
     }
 
-    private void EvolvePopulation()
+    private void EvolvePopulations()
     {
         worldGenerator.ResetFood();
 
-        List<Creature> sortedPopulation = population
-            .Where(c => c != null && c.gameObject.activeSelf)
-            .OrderByDescending(o => o.fitness)
-            .ToList();
+        List<NeuralNetwork> nextGenPreyBrains = EvolveSpecies(preyPopulation, preyPopulationSize, preyMutationRate, preyMutationStrength, preyNetworkLayers, PREY_SAVE_FILE);
+        List<NeuralNetwork> nextGenPredatorBrains = EvolveSpecies(predatorPopulation, predatorPopulationSize, predatorMutationRate, predatorMutationStrength, predatorNetworkLayers, PREDATOR_SAVE_FILE);
 
-        if (sortedPopulation.Count < 4)
+        StartNewGeneration(nextGenPreyBrains, nextGenPredatorBrains);
+    }
+    
+    private List<NeuralNetwork> EvolveSpecies(List<Creature> currentPopulation, int popSize, float mutRate, float mutStr, int[] netLayers, string saveFileName)
+    {
+        List<Creature> sortedPop = currentPopulation.Where(c => c != null && c.gameObject.activeSelf && c.fitness > 0).OrderByDescending(o => o.fitness).ToList();
+
+        SaveTopBrains(sortedPop, Application.dataPath + saveFileName);
+
+        if (sortedPop.Count < 4) 
         {
-            Debug.LogWarning("Extinction event: Too few survivors. Starting fresh generation.");
-            List<NeuralNetwork> nextGenerationBrains = new List<NeuralNetwork>();
-            for (int i = 0; i < populationSize; i++)
-            {
-                nextGenerationBrains.Add(new NeuralNetwork(this.networkLayers));
-            }
-            StartNewGeneration(nextGenerationBrains);
-            return;
+            Debug.LogWarning($"{saveFileName} EXTINCTION. Starting fresh.");
+            List<NeuralNetwork> freshBrains = new List<NeuralNetwork>();
+            for (int i = 0; i < popSize; i++) { freshBrains.Add(new NeuralNetwork(netLayers)); }
+            return freshBrains;
         }
-
-        SaveTopBrains(sortedPopulation);
 
         List<NeuralNetwork> newBrains = new List<NeuralNetwork>();
-
-        // 1. Elitism for top 10percent
-        int eliteCount = Mathf.Max(1, (int)(populationSize * 0.1f));
-        for (int i = 0; i < eliteCount && i < sortedPopulation.Count; i++)
+        int eliteCount = Mathf.Max(1, (int)(popSize * 0.1f));
+        for (int i = 0; i < eliteCount && i < sortedPop.Count; i++)
         {
-            newBrains.Add(new NeuralNetwork(sortedPopulation[i].brain));
+            newBrains.Add(new NeuralNetwork(sortedPop[i].brain));
         }
 
-        // 2. Random Immigrants
-        int randomCount = (int)(populationSize * 0.05f);
+        int randomCount = (int)(popSize * 0.05f);
         for (int i = 0; i < randomCount; i++)
         {
-            newBrains.Add(new NeuralNetwork(this.networkLayers));
+            newBrains.Add(new NeuralNetwork(netLayers));
         }
-
-        // 3. Crossover & Mutation
-        int parentPoolSize = (int)(sortedPopulation.Count * 0.5f);
-        parentPoolSize = Mathf.Max(parentPoolSize, 2); // Ensure we have at least 2 parents
-        List<NeuralNetwork> parentPool = sortedPopulation.Take(parentPoolSize).Select(c => c.brain).ToList();
-
-        int remainingCount = populationSize - newBrains.Count;
+        
+        List<NeuralNetwork> parentPool = sortedPop.Take((int)(sortedPop.Count * 0.5f)).Select(c => c.brain).ToList();
+        int remainingCount = popSize - newBrains.Count;
         for (int i = 0; i < remainingCount; i++)
         {
             NeuralNetwork parentA = parentPool[Random.Range(0, parentPool.Count)];
             NeuralNetwork parentB = parentPool[Random.Range(0, parentPool.Count)];
-
             NeuralNetwork child = NeuralNetwork.Crossover(parentA, parentB);
-            child.Mutate(mutationRate, mutationStrength);
-
+            child.Mutate(mutRate, mutStr);
             newBrains.Add(child);
         }
-
-        StartNewGeneration(newBrains);
+        return newBrains;
     }
 
-    private void SaveTopBrains(List<Creature> sortedPopulation)
+    private void SaveTopBrains(List<Creature> sortedPopulation, string path)
     {
         BrainSaveData saveData = new BrainSaveData();
-
+        saveData.generation = this.generation;
         int count = Mathf.Min(sortedPopulation.Count, topBrainsToSave);
         for (int i = 0; i < count; i++)
         {
             saveData.brains.Add(sortedPopulation[i].brain.GetData());
         }
-
-        string json = JsonUtility.ToJson(saveData, true);
-        File.WriteAllText(savePath, json);
+        File.WriteAllText(path, JsonUtility.ToJson(saveData, true));
     }
 
-    private List<NeuralNetwork> LoadTopBrains()
+    private List<NeuralNetwork> LoadTopBrains(string path, int[] netLayers, int popSize)
     {
-        string json = File.ReadAllText(savePath);
-        BrainSaveData loadedData = JsonUtility.FromJson<BrainSaveData>(json);
-
         List<NeuralNetwork> loadedBrains = new List<NeuralNetwork>();
-        foreach (var brainData in loadedData.brains)
+        if (File.Exists(path))
         {
-            NeuralNetwork brain = new NeuralNetwork(this.networkLayers);
-            brain.LoadAndTransferData(brainData);
-            loadedBrains.Add(brain);
-        }
-        return loadedBrains;
-    }
+            string json = File.ReadAllText(path);
+            BrainSaveData loadedData = JsonUtility.FromJson<BrainSaveData>(json);
+            
+            this.generation = loadedData.generation;
 
-    private Creature InstantiateCreature()
-    {
-        Vector3 spawnPos = new Vector3(0, worldGenerator.groundLevel + 20f, 0);
-        return Instantiate(creaturePrefab, spawnPos, Quaternion.identity).GetComponent<Creature>();
+            foreach (var brainData in loadedData.brains)
+            {
+                NeuralNetwork brain = new NeuralNetwork(netLayers);
+                brain.LoadAndTransferData(brainData);
+                loadedBrains.Add(brain);
+            }
+            Debug.Log($"Loaded generation {this.generation} with {loadedBrains.Count} brains from {path}");
+        }
+
+        List<NeuralNetwork> startingBrains = new List<NeuralNetwork>();
+        if (loadedBrains.Count > 0)
+        {
+            for (int i = 0; i < popSize; i++)
+            {
+                NeuralNetwork parentBrain = loadedBrains[Random.Range(0, loadedBrains.Count)];
+                NeuralNetwork childBrain = new NeuralNetwork(parentBrain);
+                childBrain.Mutate(0.1f, 0.1f);
+                startingBrains.Add(childBrain);
+            }
+        }
+        else
+        {
+            Debug.Log($"No save file found at {path}. Creating fresh population.");
+            for (int i = 0; i < popSize; i++)
+            {
+                startingBrains.Add(new NeuralNetwork(netLayers));
+            }
+        }
+        return startingBrains;
     }
 
     void OnApplicationQuit()

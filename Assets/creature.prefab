@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 6277849452009853664}
   - component: {fileID: 4815914598109173352}
   - component: {fileID: 319628321251255484}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: fill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -85,7 +85,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3769377531742441320}
   - component: {fileID: 8955305890097070547}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: hungerBar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -139,7 +139,7 @@ GameObject:
   - component: {fileID: 160630268793086177}
   - component: {fileID: 2231524213928188732}
   - component: {fileID: 6472146739618667928}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: creature
   m_TagString: Creature
   m_Icon: {fileID: 0}
@@ -162,6 +162,7 @@ Transform:
   - {fileID: 3769377531742441320}
   - {fileID: 743748865118769511}
   - {fileID: 7533741043477008808}
+  - {fileID: 1168868545516978100}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &6035470340283475718
@@ -262,6 +263,18 @@ MonoBehaviour:
   fitness: 0
   underwaterGravityScale: 0
   underwaterDrag: 1
+  whiskerLength: 5
+  foodDetectionRadius: 10
+  predatorDetectionRadius: 8
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  predatorLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  foodLayer:
+    serializedVersion: 2
+    m_Bits: 64
 --- !u!70 &6472146739618667928
 CapsuleCollider2D:
   m_ObjectHideFlags: 0
@@ -309,7 +322,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7533741043477008808}
   - component: {fileID: 3535205273897169385}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Triangle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -324,13 +337,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2579015650901110544}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: 0.75, y: -0, z: 0}
+  m_LocalRotation: {x: 0, y: -0, z: 0.7071068, w: -0.7071068}
+  m_LocalPosition: {x: -0.83, y: -0, z: 0}
   m_LocalScale: {x: 0.8, y: 0.8, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7065783201316107755}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 270}
 --- !u!212 &3535205273897169385
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -386,6 +399,75 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!1 &3496152992031428762
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1168868545516978100}
+  - component: {fileID: 7231827591196995959}
+  m_Layer: 8
+  m_Name: TriggerArea
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1168868545516978100
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3496152992031428762}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7065783201316107755}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!70 &7231827591196995959
+CapsuleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3496152992031428762}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: -0.23007485, y: 0.00000014663635}
+  m_Size: {x: 1.609779, y: 1.0548913}
+  m_Direction: 1
 --- !u!1 &5054678939853478129
 GameObject:
   m_ObjectHideFlags: 0
@@ -396,7 +478,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6512527782712357812}
   - component: {fileID: 2215329725739034451}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: bar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -484,7 +566,7 @@ GameObject:
   - component: {fileID: 4104292174218186221}
   - component: {fileID: 4565758955621423852}
   - component: {fileID: 8486790867983816612}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: background
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -558,7 +640,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3317212782145747704}
   - component: {fileID: 6955727011324200533}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: fill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -648,7 +730,7 @@ GameObject:
   - component: {fileID: 2140722061361573799}
   - component: {fileID: 3723364916779135546}
   - component: {fileID: 1638570267729017565}
-  m_Layer: 5
+  m_Layer: 8
   m_Name: Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
