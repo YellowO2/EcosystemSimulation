@@ -869,9 +869,9 @@ MonoBehaviour:
   worldGenerator: {fileID: 1212217362}
   worldToGenerate: 0
   simulationTime: 63
-  timeScale: 5
+  timeScale: 8
   topBrainsToSave: 10
-  preyPopulationSize: 20
+  preyPopulationSize: 25
   preyMutationRate: 0.1
   preyMutationStrength: 0.1
   predatorPopulationSize: 3
