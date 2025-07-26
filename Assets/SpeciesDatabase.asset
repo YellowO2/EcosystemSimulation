@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f240755a98ee3a14b83d4864535719c9, type: 3}
+  m_Name: SpeciesDatabase
+  m_EditorClassIdentifier: 
+  allSpecies:
+  - speciesName: Fish
+    prefab: {fileID: 2003193231976353223, guid: 4010a6a65a956471aa0d6f29aaeffa4f, type: 3}
+    initialPopulation: 20
+    networkLayers: 0b0000000800000002000000
+    brainArchiveFile: preyBrains.json
+    baseMutationRate: 0.2
+    baseMutationStrength: 0.1
+  - speciesName: FishPredator
+    prefab: {fileID: 2003193231976353223, guid: 4010a6a65a956471aa0d6f29aaeffa4f, type: 3}
+    initialPopulation: 5
+    networkLayers: 0b0000000800000002000000
+    brainArchiveFile: predatorBrains.json
+    baseMutationRate: 0.2
+    baseMutationStrength: 0.1

@@ -405,7 +405,7 @@ RectTransform:
   m_Father: {fileID: 704101892}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 10, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -447,6 +447,74 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 84167569}
   m_CullTransparentMesh: 1
+--- !u!1 &234789219
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 234789222}
+  - component: {fileID: 234789221}
+  - component: {fileID: 234789220}
+  m_Layer: 0
+  m_Name: WorldMenuManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &234789220
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 234789219}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 19102, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_PanelSettings: {fileID: 11400000, guid: be26d67b24a6702408fedae84003ab4c, type: 2}
+  m_ParentUI: {fileID: 0}
+  sourceAsset: {fileID: 9197481963319205126, guid: d4b4a6e8e52e93b44b4558f770fc247d, type: 3}
+  m_SortingOrder: 0
+  m_WorldSpaceSizeMode: 1
+  m_WorldSpaceWidth: 1920
+  m_WorldSpaceHeight: 1080
+--- !u!114 &234789221
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 234789219}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34452f8688341064e9126b9af7b4a2f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  worldManager: {fileID: 1212217362}
+  populationManager: {fileID: 934909956}
+  gameController: {fileID: 560499301}
+  menuDocument: {fileID: 234789220}
+--- !u!4 &234789222
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 234789219}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 12.33611, y: -12.7382, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &254146464
 GameObject:
   m_ObjectHideFlags: 0
@@ -1118,6 +1186,7 @@ GameObject:
   m_Component:
   - component: {fileID: 560499302}
   - component: {fileID: 560499301}
+  - component: {fileID: 560499303}
   m_Layer: 0
   m_Name: Controller
   m_TagString: Untagged
@@ -1139,15 +1208,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   worldManager: {fileID: 1212217362}
   populationManager: {fileID: 934909956}
-  worldSelectionPanel: {fileID: 1766901100}
-  worldListContainer: {fileID: 1030362015}
-  worldButtonPrefab: {fileID: 1566319437647444628, guid: 1a1f2719244dbdb40adc973cf6cb6fbb, type: 3}
-  newWorldNameInput: {fileID: 21805108}
-  createWorldButton: {fileID: 610128453}
-  saveCurrentWorldButton: {fileID: 1342148323}
-  timeScaleSlider: {fileID: 660675402}
-  mutationSlider: {fileID: 1884565286}
-  simStatsText: {fileID: 1229270783}
+  speciesDatabase: {fileID: 11400000, guid: f3a44ecf16c56244db9512ac29ba0b26, type: 2}
+  worldMenuManager: {fileID: 234789221}
+  mainUIDocument: {fileID: 560499303}
   placeableTiles:
   - {fileID: 11400000, guid: 8ba24b00408298744a0689aeddc16afd, type: 2}
   - {fileID: 11400000, guid: ee945edd5f1504e028569e9ccdfe8610, type: 2}
@@ -1168,6 +1231,25 @@ Transform:
   - {fileID: 2032884688}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &560499303
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 560499300}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 19102, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_PanelSettings: {fileID: 11400000, guid: be26d67b24a6702408fedae84003ab4c, type: 2}
+  m_ParentUI: {fileID: 0}
+  sourceAsset: {fileID: 9197481963319205126, guid: b59bbbee6ed9fee40aa6de73472ae717, type: 3}
+  m_SortingOrder: 0
+  m_WorldSpaceSizeMode: 1
+  m_WorldSpaceWidth: 1920
+  m_WorldSpaceHeight: 1080
 --- !u!1 &610128451
 GameObject:
   m_ObjectHideFlags: 0
@@ -1406,7 +1488,7 @@ RectTransform:
   m_Father: {fileID: 1827217845}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -1877,26 +1959,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   worldManager: {fileID: 1212217362}
-  populationText: {fileID: 1263656158}
+  speciesDatabase: {fileID: 11400000, guid: f3a44ecf16c56244db9512ac29ba0b26, type: 2}
+  currentMode: 0
+  generationTime: 60
   globalMutationMultiplier: 1
-  populationCheckInterval: 60
-  speciesToManage:
-  - speciesName: Big Black Fish
-    prefab: {fileID: 126107785529659558, guid: 96ecb4ab88a2d7a4daa2b004918624a8, type: 3}
-    minPopulation: 1
-    restockAmount: 2
-    networkLayers: 0b0000000800000002000000
-    brainArchiveFile: predatorBrains.json
-    baseMutationRate: 0.05
-    baseMutationStrength: 0.1
-  - speciesName: Small Fish
-    prefab: {fileID: 2003193231976353223, guid: 4010a6a65a956471aa0d6f29aaeffa4f, type: 3}
-    minPopulation: 10
-    restockAmount: 10
-    networkLayers: 0b0000000800000002000000
-    brainArchiveFile: preyBrains.json
-    baseMutationRate: 0.05
-    baseMutationStrength: 0.1
 --- !u!224 &934909957
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2057,7 +2123,7 @@ RectTransform:
   m_Father: {fileID: 1365029091}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 10, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -3901,7 +3967,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2032884688
 RectTransform:
   m_ObjectHideFlags: 0
@@ -4023,7 +4089,7 @@ RectTransform:
   m_Father: {fileID: 1819814409}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -4078,3 +4144,4 @@ SceneRoots:
   - {fileID: 254146470}
   - {fileID: 934909957}
   - {fileID: 1015779204}
+  - {fileID: 234789222}

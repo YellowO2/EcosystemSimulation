@@ -11,6 +11,7 @@ public class WorldSaveState
     public List<TileChange> mapChanges = new List<TileChange>();
     public List<CreatureSaveData> creatures = new List<CreatureSaveData>();
     public List<Vector3> foodPositions = new List<Vector3>();
+    public List<string> activeSpeciesNames = new List<string>();
 }
 
 // Holds the state of a single creature
@@ -28,11 +29,10 @@ public class SpeciesConfiguration
 {
     public string speciesName;
     public GameObject prefab;
-    public int minPopulation;
-    public int restockAmount;
+    public int initialPopulation = 10;
     public int[] networkLayers;
     public string brainArchiveFile;
-    
+
     [Header("Evolution")]
     [Range(0f, 1f)] public float baseMutationRate = 0.05f;
     [Range(0f, 1f)] public float baseMutationStrength = 0.1f;

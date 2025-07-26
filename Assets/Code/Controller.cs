@@ -1,66 +1,166 @@
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
+using UnityEngine.UIElements;
 
 public class Controller : MonoBehaviour
 {
-    [Header("Game References")]
+    #region Fields & References
+    [Header("System References")]
     public WorldGenerator worldManager;
     public PopulationManager populationManager;
+    public SpeciesDatabase speciesDatabase;
+    public WorldMenuManager worldMenuManager;
 
-    [Header("World Selection UI")]
-    public GameObject worldSelectionPanel;
-    public Transform worldListContainer;
-    public GameObject worldButtonPrefab;
-    public TMP_InputField newWorldNameInput;
-    public Button createWorldButton;
-    public Button saveCurrentWorldButton;
-
-    [Header("In-Game UI")]
-    public Slider timeScaleSlider;
-    public Slider mutationSlider;
-    public TextMeshProUGUI simStatsText;
+    [Header("UI (UXML)")]
+    public UIDocument mainUIDocument;
 
     [Header("Tile Editing")]
     public Tile[] placeableTiles;
-    private int selectedTileIndex = 0;
-    private Vector3Int lastModifiedCell;
-    
+
     private Camera mainCamera;
     private string currentWorldName;
+    private int selectedTileIndex = 0;
+    private Vector3Int lastModifiedCell;
 
+    // UXML Element References
+    private VisualElement root;
+    private VisualElement gymSetupPanel;
+    private Button startGymButton;
+    private VisualElement speciesListContainer;
+    private Slider timeScaleSlider;
+    private Slider mutationSlider;
+    private Button saveWorldButton;
+    private Label simStatsLabel;
+    #endregion
+
+
+    #region Unity Lifecycle & UI Setup
     void Awake()
     {
         mainCamera = Camera.main;
         lastModifiedCell = new Vector3Int(int.MaxValue, int.MaxValue, int.MaxValue);
     }
-    
+
+    void OnEnable()
+    {
+        root = mainUIDocument.rootVisualElement;
+
+        gymSetupPanel = root.Q<VisualElement>("gym-setup-panel");
+        startGymButton = root.Q<Button>("start-button");
+        speciesListContainer = root.Q<VisualElement>("species-list");
+        startGymButton.clicked += StartGymSimulation;
+
+        timeScaleSlider = root.Q<Slider>("time-scale-slider");
+        mutationSlider = root.Q<Slider>("mutation-slider");
+        simStatsLabel = root.Q<Label>("sim-stats-label");
+        saveWorldButton = root.Q<Button>("save-world-button");
+        timeScaleSlider.RegisterValueChangedCallback(evt => HandleTimeScaleChanged(evt.newValue));
+        mutationSlider.RegisterValueChangedCallback(evt => HandleMutationChanged(evt.newValue));
+        saveWorldButton.clicked += HandleSaveCurrentWorld;
+
+        root.style.display = DisplayStyle.None;
+    }
+
+    void OnDisable()
+    {
+        if (startGymButton != null) startGymButton.clicked -= StartGymSimulation;
+        if (saveWorldButton != null) saveWorldButton.clicked -= HandleSaveCurrentWorld;
+    }
+
     void Start()
     {
-        createWorldButton.onClick.AddListener(HandleCreateNewWorld);
-        saveCurrentWorldButton.onClick.AddListener(HandleSaveCurrentWorld);
-        timeScaleSlider.onValueChanged.AddListener(HandleTimeScaleChanged);
-        mutationSlider.onValueChanged.AddListener(HandleMutationChanged);
-
+        PopulateSpeciesToggles();
+        timeScaleSlider.value = Time.timeScale;
+        mutationSlider.value = populationManager.globalMutationMultiplier;
         UpdateSimStatsText();
-        ShowWorldSelectionMenu();
     }
 
     void Update()
     {
         if (Keyboard.current.escapeKey.wasPressedThisFrame)
         {
-            ShowWorldSelectionMenu();
+            worldMenuManager.ShowMenu(currentWorldName);
         }
 
-        if (worldSelectionPanel.activeSelf) return;
+        if (worldMenuManager.IsVisible) return;
 
         HandleCameraControls();
         HandleTileSelection();
         HandleTileModification();
+    }
+    #endregion
+
+
+    #region Public Methods
+    public void ShowHUD()
+    {
+        root.style.display = DisplayStyle.Flex;
+        gymSetupPanel.style.display = DisplayStyle.Flex; // Ensure gym panel is visible when HUD shows
+    }
+
+    public void HideHUD()
+    {
+        root.style.display = DisplayStyle.None;
+    }
+
+    public void SetCurrentWorld(string worldName)
+    {
+        this.currentWorldName = worldName;
+    }
+
+    public void ResumeTime()
+    {
+        HandleTimeScaleChanged(timeScaleSlider.value);
+    }
+    #endregion
+
+
+    #region Gym UI (UXML)
+    private void PopulateSpeciesToggles()
+    {
+        speciesListContainer.Clear();
+        foreach (var speciesConfig in speciesDatabase.allSpecies)
+        {
+            var toggle = new Toggle(speciesConfig.speciesName) { name = speciesConfig.speciesName };
+            speciesListContainer.Add(toggle);
+        }
+    }
+
+    private void StartGymSimulation()
+    {
+        var selectedSpeciesNames = new List<string>();
+        var toggles = speciesListContainer.Query<Toggle>().ToList();
+        foreach (var toggle in toggles)
+        {
+            if (toggle.value) selectedSpeciesNames.Add(toggle.name);
+        }
+
+        if (selectedSpeciesNames.Count > 0)
+        {
+            populationManager.ConfigureAndStartSimulation(selectedSpeciesNames);
+            gymSetupPanel.style.display = DisplayStyle.None; // Hide the panel after starting
+        }
+    }
+    #endregion
+
+
+    #region In-Game Controls
+    private void HandleCameraControls()
+    {
+        float cameraSpeed = 10f * Time.unscaledDeltaTime;
+        //debug log for key press
+        if (Keyboard.current.rightArrowKey.isPressed || Keyboard.current.leftArrowKey.isPressed ||
+            Keyboard.current.upArrowKey.isPressed || Keyboard.current.downArrowKey.isPressed)
+        {
+            Debug.Log("Camera movement key pressed");
+        }
+        if (Keyboard.current.rightArrowKey.isPressed) mainCamera.transform.position += new Vector3(cameraSpeed, 0, 0);
+        if (Keyboard.current.leftArrowKey.isPressed) mainCamera.transform.position += new Vector3(-cameraSpeed, 0, 0);
+        if (Keyboard.current.upArrowKey.isPressed) mainCamera.transform.position += new Vector3(0, cameraSpeed, 0);
+        if (Keyboard.current.downArrowKey.isPressed) mainCamera.transform.position += new Vector3(0, -cameraSpeed, 0);
     }
 
     private void HandleTileSelection()
@@ -97,12 +197,27 @@ public class Controller : MonoBehaviour
         }
     }
 
+    private void HandleSaveCurrentWorld()
+    {
+        if (string.IsNullOrEmpty(currentWorldName))
+        {
+            Debug.LogWarning("Cannot save world without a name.");
+            return;
+        }
+        DatabaseManager.Instance.SaveWorld(currentWorldName);
+        Debug.Log($"World '{currentWorldName}' saved successfully.");
+    }
+    #endregion
+
+
+
+    #region In-Game UI (HUD)
     private void HandleTimeScaleChanged(float value)
     {
         Time.timeScale = value;
         UpdateSimStatsText();
     }
-    
+
     private void HandleMutationChanged(float value)
     {
         populationManager.globalMutationMultiplier = value;
@@ -113,80 +228,7 @@ public class Controller : MonoBehaviour
     {
         float speed = timeScaleSlider.value;
         float mutation = mutationSlider.value;
-        simStatsText.text = $"Speed: {speed:F1}x | Mutation: {mutation:F1}x";
+        simStatsLabel.text = $"Speed: {speed:F1}x | Mutation: {mutation:F1}x";
     }
-
-    private void ShowWorldSelectionMenu()
-    {
-        worldSelectionPanel.SetActive(true);
-        Time.timeScale = 0f;
-        PopulateWorldList();
-        saveCurrentWorldButton.interactable = !string.IsNullOrEmpty(currentWorldName);
-    }
-    
-    private void PopulateWorldList()
-    {
-        foreach (Transform child in worldListContainer) Destroy(child.gameObject);
-        List<string> worldNames = DatabaseManager.Instance.GetSavedWorldNames();
-        foreach (string worldName in worldNames)
-        {
-            GameObject prefabInstance = Instantiate(worldButtonPrefab, worldListContainer);
-            Button loadButton = prefabInstance.transform.Find("LoadButton").GetComponent<Button>();
-            Button deleteButton = prefabInstance.transform.Find("DeleteButton").GetComponent<Button>();
-            loadButton.GetComponentInChildren<TextMeshProUGUI>().text = worldName;
-            
-            string nameForButton = worldName;
-            loadButton.onClick.AddListener(() => HandleLoadWorld(nameForButton));
-            deleteButton.onClick.AddListener(() => HandleDeleteWorld(nameForButton));
-        }
-    }
-
-    private void HandleDeleteWorld(string worldName)
-    {
-        DatabaseManager.Instance.DeleteWorld(worldName);
-        if (worldName == currentWorldName) currentWorldName = null;
-        PopulateWorldList();
-    }
-
-    private void HandleCreateNewWorld()
-    {
-        string worldName = newWorldNameInput.text;
-        if (string.IsNullOrWhiteSpace(worldName)) return;
-        currentWorldName = worldName;
-        
-        worldManager.GenerateNewWorld(WorldGenerator.WorldType.Perlin);
-        populationManager.StartFreshSimulation();
-        DatabaseManager.Instance.SaveWorld(currentWorldName);
-        
-        CloseMenuAndResume();
-    }
-    
-    private void HandleLoadWorld(string worldName)
-    {
-        currentWorldName = worldName;
-        DatabaseManager.Instance.LoadWorld(currentWorldName);
-        CloseMenuAndResume();
-    }
-
-    private void HandleSaveCurrentWorld()
-    {
-        if (string.IsNullOrEmpty(currentWorldName)) return;
-        DatabaseManager.Instance.SaveWorld(currentWorldName);
-        CloseMenuAndResume();
-    }
-    
-    private void CloseMenuAndResume()
-    {
-        worldSelectionPanel.SetActive(false);
-        HandleTimeScaleChanged(timeScaleSlider.value);
-    }
-
-    void HandleCameraControls()
-    {
-        float cameraSpeed = 10f * Time.unscaledDeltaTime;
-        if (Keyboard.current.rightArrowKey.isPressed) mainCamera.transform.position += new Vector3(cameraSpeed, 0, 0);
-        if (Keyboard.current.leftArrowKey.isPressed) mainCamera.transform.position += new Vector3(-cameraSpeed, 0, 0);
-        if (Keyboard.current.upArrowKey.isPressed) mainCamera.transform.position += new Vector3(0, cameraSpeed, 0);
-        if (Keyboard.current.downArrowKey.isPressed) mainCamera.transform.position += new Vector3(0, -cameraSpeed, 0);
-    }
+    #endregion
 }
