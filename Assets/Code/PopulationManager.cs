@@ -12,11 +12,11 @@ public class PopulationManager : MonoBehaviour
     [Header("UI Elements")]
     public TextMeshProUGUI populationText;
 
-    [Header("Global Evolution Settings")]
+    [Header("Evolution Settings")]
     [Range(0f, 5f)] public float globalMutationMultiplier = 1f;
-
-    [Header("System Settings")]
     public float populationCheckInterval = 10f;
+    public enum SimulationMode { Gym, Ecosystem }
+    public SimulationMode currentMode;
 
     [Header("Species Management")]
     public List<SpeciesConfiguration> speciesToManage;
@@ -24,7 +24,7 @@ public class PopulationManager : MonoBehaviour
     private Dictionary<string, List<Creature>> population = new Dictionary<string, List<Creature>>();
     private Dictionary<string, SpeciesConfiguration> speciesConfigMap = new Dictionary<string, SpeciesConfiguration>();
     private float populationCheckTimer;
-    
+
     void OnEnable()
     {
         Creature.OnCreatureBorn += HandleCreatureBorn;
@@ -111,7 +111,7 @@ public class PopulationManager : MonoBehaviour
         }
         populationText.text = text;
     }
-    
+
     private void HandleCreatureBorn(Creature parent)
     {
         if (!speciesConfigMap.ContainsKey(parent.speciesName)) return;
@@ -124,11 +124,11 @@ public class PopulationManager : MonoBehaviour
         NeuralNetwork childBrain = new NeuralNetwork(parent.brain);
         float effectiveMutationRate = config.baseMutationRate * globalMutationMultiplier;
         childBrain.Mutate(effectiveMutationRate, config.baseMutationStrength);
-        
+
         child.Init(childBrain, parent.speciesName);
         population[parent.speciesName].Add(child);
     }
-    
+
     public void PackSimulationData(WorldSaveState state)
     {
         state.creatures.Clear();

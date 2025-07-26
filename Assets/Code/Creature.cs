@@ -113,8 +113,8 @@ public class Creature : MonoBehaviour
         inputs[7] = predatorDirection.x;
         inputs[8] = predatorDirection.y;
 
-        inputs[9] = rb.velocity.x;
-        inputs[10] = rb.velocity.y;
+        inputs[9] = rb.linearVelocity.x;
+        inputs[10] = rb.linearVelocity.y;
 
         return inputs;
     }
@@ -127,9 +127,9 @@ public class Creature : MonoBehaviour
             rb.AddForce(force);
         }
 
-        if (rb.velocity.sqrMagnitude > 0.01f) 
+        if (rb.linearVelocity.sqrMagnitude > 0.01f) 
         {
-            float angle = Mathf.Atan2(rb.velocity.y, rb.velocity.x) * Mathf.Rad2Deg;
+            float angle = Mathf.Atan2(rb.linearVelocity.y, rb.linearVelocity.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
         }
     }

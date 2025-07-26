@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
 using UnityEngine.InputSystem;
+using UnityEngine.Tilemaps;
 
 public class Controller : MonoBehaviour
 {
@@ -22,6 +23,11 @@ public class Controller : MonoBehaviour
     public Slider timeScaleSlider;
     public Slider mutationSlider;
     public TextMeshProUGUI simStatsText;
+
+    [Header("Tile Editing")]
+    public Tile[] placeableTiles;
+    private int selectedTileIndex = 0;
+    private Vector3Int lastModifiedCell;
     
     private Camera mainCamera;
     private string currentWorldName;
@@ -29,6 +35,7 @@ public class Controller : MonoBehaviour
     void Awake()
     {
         mainCamera = Camera.main;
+        lastModifiedCell = new Vector3Int(int.MaxValue, int.MaxValue, int.MaxValue);
     }
     
     void Start()
@@ -44,11 +51,49 @@ public class Controller : MonoBehaviour
 
     void Update()
     {
-        HandleCameraControls();
-        
         if (Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             ShowWorldSelectionMenu();
+        }
+
+        if (worldSelectionPanel.activeSelf) return;
+
+        HandleCameraControls();
+        HandleTileSelection();
+        HandleTileModification();
+    }
+
+    private void HandleTileSelection()
+    {
+        if (Keyboard.current.digit1Key.wasPressedThisFrame && placeableTiles.Length > 0) selectedTileIndex = 0;
+        if (Keyboard.current.digit2Key.wasPressedThisFrame && placeableTiles.Length > 1) selectedTileIndex = 1;
+        if (Keyboard.current.digit3Key.wasPressedThisFrame && placeableTiles.Length > 2) selectedTileIndex = 2;
+    }
+
+    private void HandleTileModification()
+    {
+        Vector3 worldPoint = mainCamera.ScreenToWorldPoint(Mouse.current.position.ReadValue());
+        Vector3Int currentCell = worldManager.groundTilemap.WorldToCell(worldPoint);
+
+        if (Mouse.current.leftButton.isPressed)
+        {
+            if (currentCell != lastModifiedCell && selectedTileIndex < placeableTiles.Length)
+            {
+                worldManager.SetTile(currentCell, placeableTiles[selectedTileIndex]);
+                lastModifiedCell = currentCell;
+            }
+        }
+        else if (Mouse.current.rightButton.isPressed)
+        {
+            if (currentCell != lastModifiedCell)
+            {
+                worldManager.SetTile(currentCell, null);
+                lastModifiedCell = currentCell;
+            }
+        }
+        else
+        {
+            lastModifiedCell = new Vector3Int(int.MaxValue, int.MaxValue, int.MaxValue);
         }
     }
 
@@ -108,6 +153,7 @@ public class Controller : MonoBehaviour
         string worldName = newWorldNameInput.text;
         if (string.IsNullOrWhiteSpace(worldName)) return;
         currentWorldName = worldName;
+        
         worldManager.GenerateNewWorld(WorldGenerator.WorldType.Perlin);
         populationManager.StartFreshSimulation();
         DatabaseManager.Instance.SaveWorld(currentWorldName);
@@ -137,7 +183,7 @@ public class Controller : MonoBehaviour
 
     void HandleCameraControls()
     {
-        float cameraSpeed = 10f * Time.deltaTime;
+        float cameraSpeed = 10f * Time.unscaledDeltaTime;
         if (Keyboard.current.rightArrowKey.isPressed) mainCamera.transform.position += new Vector3(cameraSpeed, 0, 0);
         if (Keyboard.current.leftArrowKey.isPressed) mainCamera.transform.position += new Vector3(-cameraSpeed, 0, 0);
         if (Keyboard.current.upArrowKey.isPressed) mainCamera.transform.position += new Vector3(0, cameraSpeed, 0);
