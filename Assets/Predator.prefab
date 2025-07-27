@@ -11,8 +11,8 @@ GameObject:
   - component: {fileID: 8311533404062488260}
   - component: {fileID: 3891959453631729606}
   - component: {fileID: 1865970049569010193}
-  - component: {fileID: 8167548779619565}
   - component: {fileID: 1182655587354316379}
+  - component: {fileID: 6359910588999528158}
   m_Layer: 7
   m_Name: Predator
   m_TagString: Predator
@@ -120,34 +120,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
---- !u!114 &8167548779619565
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 126107785529659558}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7d40c39959e7c4823b6ae693ff2e6b77, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  energy: 300
-  fitness: 0
-  underwaterGravityScale: 0
-  underwaterDrag: 1
-  whiskerLength: 5
-  foodDetectionRadius: 10
-  predatorDetectionRadius: 8
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 8
-  predatorLayer:
-    serializedVersion: 2
-    m_Bits: 128
-  foodLayer:
-    serializedVersion: 2
-    m_Bits: 256
 --- !u!70 &1182655587354316379
 CapsuleCollider2D:
   m_ObjectHideFlags: 0
@@ -185,6 +157,37 @@ CapsuleCollider2D:
   m_Offset: {x: 0, y: 0}
   m_Size: {x: 0.984375, y: 0.984375}
   m_Direction: 0
+--- !u!114 &6359910588999528158
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 126107785529659558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5bc8270efc981f043993f537e6ac0f96, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  energy: 100
+  fitness: 0
+  energyToReproduce: 150
+  reproductionEnergyCost: 60
+  moveForce: 10
+  underwaterGravityScale: 0
+  underwaterDrag: 3
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  predatorLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  foodLayer:
+    serializedVersion: 2
+    m_Bits: 256
+  whiskerLength: 5
+  foodDetectionRadius: 10
+  predatorDetectionRadius: 8
 --- !u!1 &718608386891997501
 GameObject:
   m_ObjectHideFlags: 0

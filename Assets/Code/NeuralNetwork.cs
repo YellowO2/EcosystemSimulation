@@ -2,13 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-[System.Serializable]
-public class NeuralNetworkData
-{
-    public int[] layers;
-    public float[] weights; // Back to a flattened 1D array to work with JSON
-    public float[] biases;
-}
+
 
 public class NeuralNetwork
 {
@@ -50,7 +44,6 @@ public class NeuralNetwork
         };
     }
 
-    // This is the new, corrected loading function.
     public void LoadAndTransferData(NeuralNetworkData data)
     {
         // Copy biases that exist in both the old and new network
@@ -74,7 +67,7 @@ public class NeuralNetwork
                     {
                         this.weights[i - 1][j][k] = data.weights[oldWeightIndex];
                     }
-                    oldWeightIndex++; // Always advance, as we're reading sequentially from the old data.
+                    oldWeightIndex++;
                 }
             }
         }
@@ -165,10 +158,10 @@ public class NeuralNetwork
                 parentA.biases[i] :
                 parentB.biases[i];
         }
-        
+
         return child;
     }
-    
+
     public void Mutate(float chance, float val)
     {
         for (int i = 0; i < biases.Length; i++)

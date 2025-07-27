@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine.UIElements;
 
 public class WorldMenuManager : MonoBehaviour
@@ -9,9 +10,11 @@ public class WorldMenuManager : MonoBehaviour
     public PopulationManager populationManager;
     public Controller gameController;
     public UIDocument menuDocument;
+    public WorldDatabase worldDatabase; // Drag your WorldDatabase asset here
 
     private VisualElement menuRoot;
     private VisualElement worldListContainer;
+    private DropdownField presetDropdown; // Reference to the new UI element
     private TextField newWorldNameInput;
     private Button createWorldButton;
     private Button saveCurrentWorldButton;
@@ -24,6 +27,7 @@ public class WorldMenuManager : MonoBehaviour
         menuRoot = menuDocument.rootVisualElement;
         
         worldListContainer = menuRoot.Q<VisualElement>("world-list-container");
+        presetDropdown = menuRoot.Q<DropdownField>("preset-dropdown");
         newWorldNameInput = menuRoot.Q<TextField>("new-world-name-input");
         createWorldButton = menuRoot.Q<Button>("create-world-button");
         saveCurrentWorldButton = menuRoot.Q<Button>("save-world-button");
@@ -31,12 +35,12 @@ public class WorldMenuManager : MonoBehaviour
         createWorldButton.clicked += HandleCreateNewWorld;
         saveCurrentWorldButton.clicked += HandleSaveCurrentWorld;
         
-        menuRoot.style.display = DisplayStyle.None; // Start hidden
+        menuRoot.style.display = DisplayStyle.None;
     }
 
     void Start()
     {
-        ShowMenu(); // Show menu on game start
+        ShowMenu();
     }
 
     public void ShowMenu(string currentWorld = null)
@@ -44,34 +48,45 @@ public class WorldMenuManager : MonoBehaviour
         currentWorldName = currentWorld;
         menuRoot.style.display = DisplayStyle.Flex;
         Time.timeScale = 0f;
+        
         PopulateWorldList();
+        PopulatePresetDropdown(); // Populate the new dropdown
+        
         saveCurrentWorldButton.SetEnabled(!string.IsNullOrEmpty(currentWorldName));
-          gameController.HideHUD();
+        gameController.HideHUD();
     }
 
     private void PopulateWorldList()
     {
         worldListContainer.Clear();
-        
         List<string> worldNames = DatabaseManager.Instance.GetSavedWorldNames();
         foreach (string worldName in worldNames)
         {
             var row = new VisualElement() { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.SpaceBetween }};
             var loadButton = new Button(() => HandleLoadWorld(worldName)) { text = worldName, style = { flexGrow = 1 } };
             var deleteButton = new Button(() => HandleDeleteWorld(worldName)) { text = "X", style = { width = 30, marginLeft = 5 } };
-            
             row.Add(loadButton);
             row.Add(deleteButton);
             worldListContainer.Add(row);
         }
     }
 
+    private void PopulatePresetDropdown()
+    {
+        if (worldDatabase == null || worldDatabase.allWorldPresets.Count == 0) return;
+        presetDropdown.choices = worldDatabase.allWorldPresets.Select(p => p.name).ToList();
+        presetDropdown.index = 0; // Default to the first preset
+    }
+
     private void HandleCreateNewWorld()
     {
         string worldName = newWorldNameInput.value;
         if (string.IsNullOrWhiteSpace(worldName)) return;
+
+        // Get the selected preset from the dropdown and use it
+        WorldPreset selectedPreset = worldDatabase.allWorldPresets[presetDropdown.index];
+        worldManager.GenerateNewWorld(selectedPreset);
         
-        worldManager.GenerateNewWorld(WorldGenerator.WorldType.Perlin);
         populationManager.ClearSimulation();
         DatabaseManager.Instance.SaveWorld(worldName);
         
@@ -89,7 +104,6 @@ public class WorldMenuManager : MonoBehaviour
     {
         if (string.IsNullOrEmpty(currentWorldName)) return;
         DatabaseManager.Instance.SaveWorld(currentWorldName);
-        CloseMenuAndResume(currentWorldName);
     }
 
     private void HandleDeleteWorld(string worldName)
@@ -98,6 +112,8 @@ public class WorldMenuManager : MonoBehaviour
         if (worldName == currentWorldName) currentWorldName = null;
         PopulateWorldList();
     }
+
+
 
     private void CloseMenuAndResume(string newWorldName)
     {

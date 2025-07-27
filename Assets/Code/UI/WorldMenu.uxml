@@ -1,23 +1,22 @@
+<!-- In WorldMenu.uxml -->
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
-    <!-- Full-screen semi-transparent background -->
     <ui:VisualElement name="menu-background" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.5);">
         
-        <!-- Main Menu Panel -->
         <ui:VisualElement style="width: 400px; background-color: rgb(40, 40, 40); border-color: rgb(80, 80, 80); border-width: 1px; padding: 15px; border-radius: 10px;">
             <ui:Label text="World Menu" style="font-size: 20px; -unity-font-style: bold; margin-bottom: 15px; -unity-text-align: middle;" />
 
-            <!-- List of existing worlds -->
             <ui:ScrollView style="height: 200px; margin-bottom: 10px; border-width: 1px; border-color: rgb(25, 25, 25);">
                 <ui:VisualElement name="world-list-container" />
             </ui:ScrollView>
 
-            <!-- Create New World Section -->
+            <!-- ADD THIS DROPDOWN FIELD -->
+            <ui:DropdownField name="preset-dropdown" label="World Preset" style="margin-bottom: 5px;" />
+
             <ui:VisualElement style="flex-direction: row; margin-bottom: 10px;">
                 <ui:TextField name="new-world-name-input" placeholder-text="New World Name..." style="flex-grow: 1; margin-right: 5px;" />
                 <ui:Button name="create-world-button" text="Create" />
             </ui:VisualElement>
 
-            <!-- Save World Button -->
             <ui:Button name="save-world-button" text="Save Current World" style="width: 100%;" />
         </ui:VisualElement>
     </ui:VisualElement>

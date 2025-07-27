@@ -27,3 +27,10 @@ MonoBehaviour:
     brainArchiveFile: predatorBrains.json
     baseMutationRate: 0.2
     baseMutationStrength: 0.1
+  - speciesName: LandCreature
+    prefab: {fileID: 7471676353888279426, guid: 0659196fe9027734ead426542cb1f5e3, type: 3}
+    initialPopulation: 10
+    networkLayers: 090000000700000002000000
+    brainArchiveFile: 
+    baseMutationRate: 0.2
+    baseMutationStrength: 0.1

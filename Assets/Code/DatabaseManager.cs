@@ -9,6 +9,7 @@ public class DatabaseManager : MonoBehaviour
     [Header("References")]
     public PopulationManager populationManager;
     public WorldGenerator worldGenerator;
+    public WorldDatabase worldDatabase;
 
     private string saveDirectoryPath;
     private string currentWorldName;
@@ -22,8 +23,39 @@ public class DatabaseManager : MonoBehaviour
         }
         Instance = this;
         DontDestroyOnLoad(gameObject);
-
         saveDirectoryPath = Path.Combine(Application.dataPath, "Saves");
+    }
+
+    // --- NEW BRAIN SAVE/LOAD METHODS (USING THE CORRECT DATA TYPE) ---
+
+    public void SaveBestBrain(string speciesName, NeuralNetwork brain)
+    {
+        if (string.IsNullOrEmpty(currentWorldName)) return;
+
+        string worldFolderPath = Path.Combine(saveDirectoryPath, currentWorldName);
+        string brainFilePath = Path.Combine(worldFolderPath, $"{speciesName}_best_brain.json");
+
+        NeuralNetworkData saveData = brain.GetData();
+
+        string json = JsonUtility.ToJson(saveData, true);
+        File.WriteAllText(brainFilePath, json);
+    }
+
+    public NeuralNetworkData LoadBestBrainData(string speciesName)
+    {
+        if (string.IsNullOrEmpty(currentWorldName)) return null;
+
+        string brainFilePath = Path.Combine(saveDirectoryPath, currentWorldName, $"{speciesName}_best_brain.json");
+
+        if (!File.Exists(brainFilePath))
+        {
+            return null;
+        }
+
+        string json = File.ReadAllText(brainFilePath);
+        // Deserialize directly into your existing NeuralNetworkData class.
+        NeuralNetworkData loadedData = JsonUtility.FromJson<NeuralNetworkData>(json);
+        return loadedData;
     }
 
 
@@ -78,16 +110,23 @@ public class DatabaseManager : MonoBehaviour
         }
         currentWorldName = worldName;
 
+
         // Read file
         string json = File.ReadAllText(worldFilePath);
         WorldSaveState state = JsonUtility.FromJson<WorldSaveState>(json);
 
+        WorldPreset presetToLoad = worldDatabase.FindPreset(state.presetName); // Load world preset by name
+        if (presetToLoad == null)
+        {
+            Debug.LogError($"Load failed: Could not find World Preset '{state.presetName}' in the database.");
+            return;
+        }
+
         // Clear the current scene
-        populationManager.ClearSimulation();
-        // (worldGenerator is cleared by its own LoadWorldFromState method)
+        populationManager.ClearSimulation(); // (p.s. worldGenerator does clearing internally so dont need)
 
         // Ask other managers to load their state from the container
-        worldGenerator.LoadWorldFromState(state);
+        worldGenerator.LoadWorldFromState(state, presetToLoad); 
         populationManager.LoadSimulationFromState(state);
 
         Debug.Log($"World '{worldName}' loaded successfully.");
@@ -103,7 +142,7 @@ public class DatabaseManager : MonoBehaviour
         }
         SaveWorld(currentWorldName);
     }
-    
+
     public void DeleteWorld(string worldName)
     {
         string worldFolderPath = Path.Combine(saveDirectoryPath, worldName);

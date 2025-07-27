@@ -20,6 +20,7 @@ public class PopulationManager : MonoBehaviour
     #region Private State
     private Dictionary<string, List<Creature>> population = new Dictionary<string, List<Creature>>();
     private Dictionary<string, SpeciesConfiguration> speciesConfigMap = new Dictionary<string, SpeciesConfiguration>();
+    private Dictionary<string, float> bestFitnessPerSpecies = new Dictionary<string, float>();
     private List<string> activeSpeciesNames = new List<string>();
     private float generationTimer;
     #endregion
@@ -69,10 +70,23 @@ public class PopulationManager : MonoBehaviour
         foreach (string speciesName in activeSpeciesNames)
         {
             SpeciesConfiguration config = speciesConfigMap[speciesName];
+            
+            // Try to load the best brain saved for this world
+            NeuralNetworkData loadedBrainData = DatabaseManager.Instance.LoadBestBrainData(speciesName);
+            NeuralNetwork seedBrain = new NeuralNetwork(config.networkLayers);
+
+            if (loadedBrainData != null)
+            {
+                seedBrain.LoadAndTransferData(loadedBrainData);
+                Debug.Log($"Loaded champion brain for {speciesName}.");
+            }
+
+            // Spawn the initial population from the seed brain (loaded or random)
             for (int i = 0; i < config.initialPopulation; i++)
             {
-                NeuralNetwork brain = new NeuralNetwork(config.networkLayers);
-                SpawnCreature(config, worldManager.GetRandomSpawnPointOnGround(), brain);
+                NeuralNetwork childBrain = new NeuralNetwork(seedBrain);
+                if (i > 0) childBrain.Mutate(config.baseMutationRate, config.baseMutationStrength);
+                SpawnCreature(config, worldManager.GetRandomSpawnPointOnGround(), childBrain);
             }
         }
     }
@@ -114,30 +128,37 @@ public class PopulationManager : MonoBehaviour
             List<Creature> positiveFitnessSurvivors = currentCreatures.Where(c => c.fitness > 0).ToList();
             positiveFitnessSurvivors.Sort((a, b) => b.fitness.CompareTo(a.fitness));
             
+            // Check for and save a new champion
+            if (positiveFitnessSurvivors.Count > 0)
+            {
+                Creature champion = positiveFitnessSurvivors[0];
+                if (!bestFitnessPerSpecies.ContainsKey(speciesName) || champion.fitness > bestFitnessPerSpecies[speciesName])
+                {
+                    bestFitnessPerSpecies[speciesName] = champion.fitness;
+                    DatabaseManager.Instance.SaveBestBrain(speciesName, champion.brain);
+                    Debug.Log($"New champion for {speciesName} with fitness {champion.fitness}! Brain saved.");
+                }
+            }
+            
+            // --- The rest of the breeding logic remains the same ---
             var newBrains = new List<NeuralNetwork>();
             int targetPopulation = config.initialPopulation;
-
             if (positiveFitnessSurvivors.Count == 0)
             {
                 for (int i = 0; i < targetPopulation; i++) newBrains.Add(new NeuralNetwork(config.networkLayers));
                 nextGenerationBrains[speciesName] = newBrains;
                 continue;
             }
-
             int immigrantCount = (int)(targetPopulation * 0.05f);
             for (int i = 0; i < immigrantCount; i++) newBrains.Add(new NeuralNetwork(config.networkLayers));
-
             int eliteCount = (int)(targetPopulation * 0.05f);
             for (int i = 0; i < eliteCount; i++) newBrains.Add(new NeuralNetwork(positiveFitnessSurvivors[i % positiveFitnessSurvivors.Count].brain));
-            
             var parentPool = positiveFitnessSurvivors.Take(Mathf.Max(1, (int)(positiveFitnessSurvivors.Count * 0.5f))).ToList();
-
             while (newBrains.Count < targetPopulation)
             {
                 NeuralNetwork parentA = parentPool[Random.Range(0, parentPool.Count)].brain;
                 NeuralNetwork parentB = parentPool[Random.Range(0, parentPool.Count)].brain;
                 NeuralNetwork childBrain = (parentPool.Count >= 2) ? NeuralNetwork.Crossover(parentA, parentB) : new NeuralNetwork(parentA);
-                
                 childBrain.Mutate(config.baseMutationRate * globalMutationMultiplier, config.baseMutationStrength);
                 newBrains.Add(childBrain);
             }
@@ -173,6 +194,7 @@ public class PopulationManager : MonoBehaviour
             creatureList.Clear();
         }
         activeSpeciesNames.Clear();
+        bestFitnessPerSpecies.Clear();
     }
     
     public void PackSimulationData(WorldSaveState state)
