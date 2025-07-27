@@ -6,12 +6,12 @@ using System.Linq;
 public class WorldGenerator : MonoBehaviour
 {
     #region Configuration
-    public enum WorldType { Perlin, Flat }
 
     [Header("References")]
     public Tilemap groundTilemap;
     public PolygonCollider2D waterCollider;
     public GameObject foodPrefab;
+    public LayerMask groundLayer;
 
     [Header("Tile Assets")]
     public Tile dirtTile;
@@ -142,7 +142,7 @@ public class WorldGenerator : MonoBehaviour
 
     public void PackWorldData(WorldSaveState state)
     {
-        state.presetName = this.currentPreset.name;
+        state.presetName = this.currentPreset.presetName;
         state.worldGenSeed = this.seed;
         state.mapChanges = mapChanges.Select(kv => new TileChange { position = kv.Key, tileName = kv.Value }).ToList();
 
@@ -179,10 +179,11 @@ public class WorldGenerator : MonoBehaviour
         float randomX = Random.Range(-currentPreset.worldWidth / 2f + 1, currentPreset.worldWidth / 2f - 1);
         Vector2 rayStart = new Vector2(randomX, 100);
 
-        RaycastHit2D hit = Physics2D.Raycast(rayStart, Vector2.down, 200, groundTilemap.gameObject.layer);
-
+        RaycastHit2D hit = Physics2D.Raycast(rayStart, Vector2.down, 200, groundLayer);
+        Debug.Log("Raycast from hit: " + hit.collider?.name);
         if (hit.collider != null)
         {
+            Debug.Log("Spawn point found: " + hit.point);
             return hit.point + new Vector2(0, 1f);
         }
         return new Vector2(0, currentPreset.groundLevel + 1);

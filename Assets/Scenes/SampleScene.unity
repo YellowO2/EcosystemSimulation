@@ -500,6 +500,7 @@ MonoBehaviour:
   populationManager: {fileID: 934909956}
   gameController: {fileID: 560499301}
   menuDocument: {fileID: 234789220}
+  worldDatabase: {fileID: 11400000, guid: fd77d010486e06d4b81ac58ac8d31d4b, type: 2}
 --- !u!4 &234789222
 Transform:
   m_ObjectHideFlags: 0
@@ -2013,6 +2014,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   populationManager: {fileID: 934909956}
   worldGenerator: {fileID: 1212217362}
+  worldDatabase: {fileID: 11400000, guid: fd77d010486e06d4b81ac58ac8d31d4b, type: 2}
 --- !u!4 &1015779204
 Transform:
   m_ObjectHideFlags: 0
@@ -2430,19 +2432,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9631ec0c3dcb14e0b94a4b243f5b9055, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  worldWidth: 102
-  groundLevel: 5
-  waterLevel: 90
-  foodCount: 42
-  worldToGenerate: 0
-  noiseScale: 0.1
-  noiseAmplitude: 5
-  platformSteps: 15
-  platformWidth: 5
-  platformHeightStep: 1
   groundTilemap: {fileID: 1591540114}
   waterCollider: {fileID: 468058959}
   foodPrefab: {fileID: 2832266328802326960, guid: 63523b48f266a2d458c2a66ae69b62b6, type: 3}
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 8
   dirtTile: {fileID: 11400000, guid: ee945edd5f1504e028569e9ccdfe8610, type: 2}
   grassTile: {fileID: 11400000, guid: 8ba24b00408298744a0689aeddc16afd, type: 2}
   waterTile: {fileID: 11400000, guid: 84a113edea2a75446a5fac926477a83d, type: 2}

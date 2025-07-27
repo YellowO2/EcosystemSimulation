@@ -10,11 +10,11 @@ public class WorldMenuManager : MonoBehaviour
     public PopulationManager populationManager;
     public Controller gameController;
     public UIDocument menuDocument;
-    public WorldDatabase worldDatabase; // Drag your WorldDatabase asset here
+    public WorldDatabase worldDatabase;
 
     private VisualElement menuRoot;
     private VisualElement worldListContainer;
-    private DropdownField presetDropdown; // Reference to the new UI element
+    private DropdownField presetDropdown; 
     private TextField newWorldNameInput;
     private Button createWorldButton;
     private Button saveCurrentWorldButton;
@@ -74,7 +74,7 @@ public class WorldMenuManager : MonoBehaviour
     private void PopulatePresetDropdown()
     {
         if (worldDatabase == null || worldDatabase.allWorldPresets.Count == 0) return;
-        presetDropdown.choices = worldDatabase.allWorldPresets.Select(p => p.name).ToList();
+        presetDropdown.choices = worldDatabase.allWorldPresets.Select(p => p.presetName).ToList();
         presetDropdown.index = 0; // Default to the first preset
     }
 

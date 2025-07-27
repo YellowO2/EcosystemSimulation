@@ -12,4 +12,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5c645c82c4cf2cc4fbe14d59bbb2d4cd, type: 3}
   m_Name: WorldDatabase
   m_EditorClassIdentifier: 
-  allWorldPresets: []
+  allWorldPresets:
+  - presetName: Normal Aquarium
+    worldType: 0
+    worldWidth: 100
+    groundLevel: 5
+    waterLevel: 80
+    foodCount: 30
+    noiseScale: 0.1
+    noiseAmplitude: 10
+    platformSteps: 5
+    platformWidth: 5
+    platformHeightStep: 1
+  - presetName: Stairs
+    worldType: 1
+    worldWidth: 100
+    groundLevel: 5
+    waterLevel: 0
+    foodCount: 30
+    noiseScale: 0.1
+    noiseAmplitude: 10
+    platformSteps: 10
+    platformWidth: 5
+    platformHeightStep: 1
+  - presetName: Terrain
+    worldType: 0
+    worldWidth: 100
+    groundLevel: 0
+    waterLevel: 0
+    foodCount: 30
+    noiseScale: 0.1
+    noiseAmplitude: 15
+    platformSteps: 10
+    platformWidth: 5
+    platformHeightStep: 1

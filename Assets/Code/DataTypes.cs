@@ -6,7 +6,7 @@ using UnityEngine;
 public class WorldSaveState
 {
     public int generation;
-    public WorldGenerator.WorldType worldType;
+    public WorldType worldType;
     public string presetName;  // Name of the preset used for this world (might be removing later)
     public float worldGenSeed;
     public List<TileChange> mapChanges = new List<TileChange>();
@@ -55,12 +55,14 @@ public struct TileChange
     public string tileName;
 }
 
+public enum WorldType { Perlin, Flat }
+
 
 [System.Serializable]
-public class WorldPreset : ScriptableObject
+public class WorldPreset
 {
     public string presetName;
-    public WorldGenerator.WorldType worldType;
+    public WorldType worldType;
     public int worldWidth = 100;
     public int groundLevel = 5;
     public int waterLevel = 10;
