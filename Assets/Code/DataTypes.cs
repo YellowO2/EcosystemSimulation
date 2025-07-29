@@ -13,6 +13,17 @@ public class WorldSaveState
     public List<CreatureSaveData> creatures = new List<CreatureSaveData>();
     public List<Vector3> foodPositions = new List<Vector3>();
     public List<string> activeSpeciesNames = new List<string>();
+
+    // NEW list for plants, rocks, etc.
+    public List<WorldObjectData> worldObjects = new List<WorldObjectData>();
+}
+
+[System.Serializable]
+public class WorldObjectData 
+{
+    public string objectId; // "sunflower", "rock_small"
+    public Vector3 position;
+    public float timeSinceCreation; // How long this object has existed in the world
 }
 
 // Holds the state of a single creature
