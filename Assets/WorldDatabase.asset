@@ -46,3 +46,14 @@ MonoBehaviour:
     platformSteps: 10
     platformWidth: 5
     platformHeightStep: 1
+  - presetName: Climbing Challenge
+    worldType: 2
+    worldWidth: 200
+    groundLevel: 0
+    waterLevel: 0
+    foodCount: 0
+    noiseScale: 0
+    noiseAmplitude: 0
+    platformSteps: 0
+    platformWidth: 5
+    platformHeightStep: 0

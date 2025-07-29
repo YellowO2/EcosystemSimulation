@@ -17,12 +17,14 @@ public class Controller : MonoBehaviour
     [Header("UI (UXML)")]
     public UIDocument mainUIDocument;
 
-    [Header("Tile Editing")]
-    public Tile[] placeableTiles;
+    [Header("Construction")]
+    public List<PlaceableItem> hotbarItems;
+    private PlaceableItem currentSelectedItem;
+    private VisualElement hotbarSlotsContainer;
+    private VisualElement currentlySelectedSlotElement;
 
     private Camera mainCamera;
     private string currentWorldName;
-    private int selectedTileIndex = 0;
     private Vector3Int lastModifiedCell;
 
     // UXML Element References
@@ -61,6 +63,7 @@ public class Controller : MonoBehaviour
         mutationSlider.RegisterValueChangedCallback(evt => HandleMutationChanged(evt.newValue));
         saveWorldButton.clicked += HandleSaveCurrentWorld;
 
+        hotbarSlotsContainer = root.Q<VisualElement>("hotbar-slots-container");
         root.style.display = DisplayStyle.None;
     }
 
@@ -76,6 +79,12 @@ public class Controller : MonoBehaviour
         timeScaleSlider.value = Time.timeScale;
         mutationSlider.value = populationManager.globalMutationMultiplier;
         UpdateSimStatsText();
+
+        PopulateHotbar();
+        if (hotbarItems.Count > 0)
+        {
+            SelectItem(hotbarItems[0], hotbarSlotsContainer.ElementAt(0));
+        }
     }
 
     void Update()
@@ -88,8 +97,7 @@ public class Controller : MonoBehaviour
         if (worldMenuManager.IsVisible) return;
 
         HandleCameraControls();
-        HandleTileSelection();
-        HandleTileModification();
+        HandleConstruction();
     }
     #endregion
 
@@ -98,7 +106,7 @@ public class Controller : MonoBehaviour
     public void ShowHUD()
     {
         root.style.display = DisplayStyle.Flex;
-        gymSetupPanel.style.display = DisplayStyle.Flex; // Ensure gym panel is visible when HUD shows
+        gymSetupPanel.style.display = DisplayStyle.Flex;
     }
 
     public void HideHUD()
@@ -141,7 +149,7 @@ public class Controller : MonoBehaviour
         if (selectedSpeciesNames.Count > 0)
         {
             populationManager.ConfigureAndStartSimulation(selectedSpeciesNames);
-            gymSetupPanel.style.display = DisplayStyle.None; // Hide the panel after starting
+            gymSetupPanel.style.display = DisplayStyle.None;
         }
     }
     #endregion
@@ -151,36 +159,22 @@ public class Controller : MonoBehaviour
     private void HandleCameraControls()
     {
         float cameraSpeed = 10f * Time.unscaledDeltaTime;
-        //debug log for key press
-        if (Keyboard.current.rightArrowKey.isPressed || Keyboard.current.leftArrowKey.isPressed ||
-            Keyboard.current.upArrowKey.isPressed || Keyboard.current.downArrowKey.isPressed)
-        {
-            Debug.Log("Camera movement key pressed");
-        }
         if (Keyboard.current.rightArrowKey.isPressed) mainCamera.transform.position += new Vector3(cameraSpeed, 0, 0);
         if (Keyboard.current.leftArrowKey.isPressed) mainCamera.transform.position += new Vector3(-cameraSpeed, 0, 0);
         if (Keyboard.current.upArrowKey.isPressed) mainCamera.transform.position += new Vector3(0, cameraSpeed, 0);
         if (Keyboard.current.downArrowKey.isPressed) mainCamera.transform.position += new Vector3(0, -cameraSpeed, 0);
     }
-
-    private void HandleTileSelection()
-    {
-        if (Keyboard.current.digit1Key.wasPressedThisFrame && placeableTiles.Length > 0) selectedTileIndex = 0;
-        if (Keyboard.current.digit2Key.wasPressedThisFrame && placeableTiles.Length > 1) selectedTileIndex = 1;
-        if (Keyboard.current.digit3Key.wasPressedThisFrame && placeableTiles.Length > 2) selectedTileIndex = 2;
-    }
-
-    private void HandleTileModification()
+    
+    private void HandleConstruction()
     {
         Vector3 worldPoint = mainCamera.ScreenToWorldPoint(Mouse.current.position.ReadValue());
         Vector3Int currentCell = worldManager.groundTilemap.WorldToCell(worldPoint);
 
-        if (Mouse.current.leftButton.isPressed)
+        if (Mouse.current.leftButton.wasPressedThisFrame)
         {
-            if (currentCell != lastModifiedCell && selectedTileIndex < placeableTiles.Length)
+            if (currentSelectedItem != null)
             {
-                worldManager.SetTile(currentCell, placeableTiles[selectedTileIndex]);
-                lastModifiedCell = currentCell;
+                currentSelectedItem.Place(this, worldManager.groundTilemap, currentCell);
             }
         }
         else if (Mouse.current.rightButton.isPressed)
@@ -210,8 +204,31 @@ public class Controller : MonoBehaviour
     #endregion
 
 
-
     #region In-Game UI (HUD)
+    private void PopulateHotbar()
+    {
+        hotbarSlotsContainer.Clear();
+        foreach (var item in hotbarItems)
+        {
+            var slot = new VisualElement();
+            slot.AddToClassList("hotbar-slot");
+            slot.style.backgroundImage = new StyleBackground(item.icon);
+            slot.RegisterCallback<ClickEvent>(evt => SelectItem(item, slot));
+            hotbarSlotsContainer.Add(slot);
+        }
+    }
+    
+    private void SelectItem(PlaceableItem item, VisualElement slotElement)
+    {
+        if (currentlySelectedSlotElement != null)
+        {
+            currentlySelectedSlotElement.RemoveFromClassList("hotbar-slot--selected");
+        }
+        currentSelectedItem = item;
+        currentlySelectedSlotElement = slotElement;
+        currentlySelectedSlotElement.AddToClassList("hotbar-slot--selected");
+    }
+
     private void HandleTimeScaleChanged(float value)
     {
         Time.timeScale = value;

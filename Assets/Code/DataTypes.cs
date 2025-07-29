@@ -55,7 +55,7 @@ public struct TileChange
     public string tileName;
 }
 
-public enum WorldType { Perlin, Flat }
+public enum WorldType { Perlin, Flat ,ClimbingChallenge }
 
 
 [System.Serializable]

@@ -1,4 +1,5 @@
 // JumpingCreature.cs
+using System;
 using UnityEngine;
 
 public class JumpingCreature : Creature
@@ -49,6 +50,7 @@ public class JumpingCreature : Creature
         if (outputs[1] > 0.5f && isGrounded)
         {
             rb.AddForce(new Vector2(0f, jumpForce), ForceMode2D.Impulse);
+            Debug.Log("Jumping!");
         }
     }
 
@@ -62,12 +64,17 @@ public class JumpingCreature : Creature
     {
         float raycastDistance = transform.localScale.y / 2 + 0.1f;
         isGrounded = Physics2D.Raycast(transform.position, Vector2.down, raycastDistance, groundLayer);
+        if (isGrounded)
+        {
+           Debug.Log("Creature is grounded.");
+        }
     }
 
     void OnCollisionEnter2D(Collision2D collision)
     {
         if ((foodLayer.value & (1 << collision.gameObject.layer)) != 0)
         {
+            Debug.Log("Creature ate food!");
             energy += 50f;
             Destroy(collision.gameObject);
         }

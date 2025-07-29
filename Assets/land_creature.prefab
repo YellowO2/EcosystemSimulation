@@ -707,7 +707,7 @@ MonoBehaviour:
   energyToReproduce: 150
   reproductionEnergyCost: 60
   moveSpeed: 5
-  jumpForce: 5
+  jumpForce: 8
   groundLayer:
     serializedVersion: 2
     m_Bits: 8

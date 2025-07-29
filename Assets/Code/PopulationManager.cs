@@ -86,7 +86,7 @@ public class PopulationManager : MonoBehaviour
             {
                 NeuralNetwork childBrain = new NeuralNetwork(seedBrain);
                 if (i > 0) childBrain.Mutate(config.baseMutationRate, config.baseMutationStrength);
-                SpawnCreature(config, worldManager.GetRandomSpawnPointOnGround(), childBrain);
+                SpawnCreature(config, worldManager.GetSpawnPoint(), childBrain);
             }
         }
     }
@@ -175,7 +175,7 @@ public class PopulationManager : MonoBehaviour
             SpeciesConfiguration config = speciesConfigMap[speciesName];
             foreach (var brain in nextGenerationBrains[speciesName])
             {
-                SpawnCreature(config, worldManager.GetRandomSpawnPointOnGround(), brain);
+                SpawnCreature(config, worldManager.GetSpawnPoint(), brain);
             }
         }
     }
