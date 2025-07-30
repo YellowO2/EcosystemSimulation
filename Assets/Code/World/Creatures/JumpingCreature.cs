@@ -56,18 +56,14 @@ public class JumpingCreature : Creature
 
     protected override void UpdateFitnessAndEnergy()
     {
-        fitness = transform.position.x; // Fitness is how far right it gets
-        energy -= 0.1f * Time.fixedDeltaTime; // Base energy decay
+        fitness = transform.position.x; // Fitness is how far right it gets and also from eating food
+        // energy -= 0.1f * Time.fixedDeltaTime; // Base energy decay
     }
 
     private void CheckGrounded()
     {
         float raycastDistance = transform.localScale.y / 2 + 0.1f;
         isGrounded = Physics2D.Raycast(transform.position, Vector2.down, raycastDistance, groundLayer);
-        if (isGrounded)
-        {
-            Debug.Log("Creature is grounded.");
-        }
     }
 
     void OnTriggerEnter2D(Collider2D other)
@@ -82,6 +78,7 @@ public class JumpingCreature : Creature
 
                 float energyGained = plant.BeEaten();
                 energy += energyGained;
+                // fitness += 10; // Increase fitness based on energy gained
 
             }
         }

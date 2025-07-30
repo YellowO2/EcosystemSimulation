@@ -70,7 +70,7 @@ public class PopulationManager : MonoBehaviour
         foreach (string speciesName in activeSpeciesNames)
         {
             SpeciesConfiguration config = speciesConfigMap[speciesName];
-            
+
             // Try to load the best brain saved for this world
             NeuralNetworkData loadedBrainData = DatabaseManager.Instance.LoadBestBrainData(speciesName);
             NeuralNetwork seedBrain = new NeuralNetwork(config.networkLayers);
@@ -113,6 +113,7 @@ public class PopulationManager : MonoBehaviour
     #endregion
 
 
+
     #region Gym Mode Logic
     private void RunNextGymGeneration()
     {
@@ -125,13 +126,14 @@ public class PopulationManager : MonoBehaviour
             currentCreatures.RemoveAll(c => c == null);
             if (currentCreatures.Count == 0) continue;
 
-            List<Creature> positiveFitnessSurvivors = currentCreatures.Where(c => c.fitness > 0).ToList();
-            positiveFitnessSurvivors.Sort((a, b) => b.fitness.CompareTo(a.fitness));
-            
-            // Check for and save a new champion
-            if (positiveFitnessSurvivors.Count > 0)
+            //sort the entire population
+            currentCreatures.Sort((a, b) => b.fitness.CompareTo(a.fitness));
+            List<Creature> survivors = currentCreatures; // Use a clearer name
+
+            // Save champion brain
+            if (survivors.Count > 0)
             {
-                Creature champion = positiveFitnessSurvivors[0];
+                Creature champion = survivors[0];
                 if (!bestFitnessPerSpecies.ContainsKey(speciesName) || champion.fitness > bestFitnessPerSpecies[speciesName])
                 {
                     bestFitnessPerSpecies[speciesName] = champion.fitness;
@@ -139,35 +141,45 @@ public class PopulationManager : MonoBehaviour
                     Debug.Log($"New champion for {speciesName} with fitness {champion.fitness}! Brain saved.");
                 }
             }
-            
-            // --- The rest of the breeding logic remains the same ---
+
             var newBrains = new List<NeuralNetwork>();
             int targetPopulation = config.initialPopulation;
-            if (positiveFitnessSurvivors.Count == 0)
+
+            // guarantee at least one elite (unchanged brain) and one immigrant (random)
+            int eliteCount = Mathf.Max(1, (int)(targetPopulation * 0.1f)); // 10% is a good standard for elites
+            for (int i = 0; i < eliteCount && i < survivors.Count; i++)
             {
-                for (int i = 0; i < targetPopulation; i++) newBrains.Add(new NeuralNetwork(config.networkLayers));
-                nextGenerationBrains[speciesName] = newBrains;
-                continue;
+                newBrains.Add(new NeuralNetwork(survivors[i].brain));
             }
-            int immigrantCount = (int)(targetPopulation * 0.05f);
-            for (int i = 0; i < immigrantCount; i++) newBrains.Add(new NeuralNetwork(config.networkLayers));
-            int eliteCount = (int)(targetPopulation * 0.05f);
-            for (int i = 0; i < eliteCount; i++) newBrains.Add(new NeuralNetwork(positiveFitnessSurvivors[i % positiveFitnessSurvivors.Count].brain));
-            var parentPool = positiveFitnessSurvivors.Take(Mathf.Max(1, (int)(positiveFitnessSurvivors.Count * 0.5f))).ToList();
+
+            // Immigrants provide fresh, random genetic material.
+            int immigrantCount = Mathf.Max(1, (int)(targetPopulation * 0.05f));
+            for (int i = 0; i < immigrantCount; i++)
+            {
+                newBrains.Add(new NeuralNetwork(config.networkLayers));
+            }
+
+            float totalFitness = survivors.Sum(c => c.fitness);
+
+            // If all fitness is zero, every survivor gets an equal chance to be a parent.
+            bool useEqualWeight = totalFitness <= 0;
+
+            // Create the rest of the population via Crossover and Mutation
             while (newBrains.Count < targetPopulation)
             {
-                NeuralNetwork parentA = parentPool[Random.Range(0, parentPool.Count)].brain;
-                NeuralNetwork parentB = parentPool[Random.Range(0, parentPool.Count)].brain;
-                NeuralNetwork childBrain = (parentPool.Count >= 2) ? NeuralNetwork.Crossover(parentA, parentB) : new NeuralNetwork(parentA);
+                NeuralNetwork parentA = SelectParent(survivors, totalFitness, useEqualWeight);
+                NeuralNetwork parentB = SelectParent(survivors, totalFitness, useEqualWeight);
+
+                NeuralNetwork childBrain = NeuralNetwork.Crossover(parentA, parentB);
                 childBrain.Mutate(config.baseMutationRate * globalMutationMultiplier, config.baseMutationStrength);
                 newBrains.Add(childBrain);
             }
+
             nextGenerationBrains[speciesName] = newBrains;
         }
 
-        List<string> speciesToRespawn = new List<string>(activeSpeciesNames);
-        ClearSimulation();
-        this.activeSpeciesNames = speciesToRespawn;
+        // --- Respawn Logic ---
+        ClearAllCreatures();
 
         foreach (string speciesName in activeSpeciesNames)
         {
@@ -177,6 +189,44 @@ public class PopulationManager : MonoBehaviour
             {
                 SpawnCreature(config, worldManager.GetSpawnPoint(), brain);
             }
+        }
+    }
+
+    // Helps to select parent where higher fitness have higher chance
+    private NeuralNetwork SelectParent(List<Creature> candidates, float totalFitness, bool useEqualWeight)
+    {
+        if (useEqualWeight)
+        {
+            // If scores are bad, pick any survivor randomly.
+            return candidates[Random.Range(0, candidates.Count)].brain;
+        }
+
+        // "Roulette Wheel" selection
+        float randomValue = Random.Range(0f, totalFitness);
+        float currentSum = 0;
+
+        foreach (var candidate in candidates)
+        {
+            currentSum += candidate.fitness;
+            if (currentSum >= randomValue)
+            {
+                return candidate.brain;
+            }
+        }
+        // in case of floating point errors, return the best.
+        return candidates.First().brain;
+    }
+
+
+    public void ClearAllCreatures()
+    {
+        foreach (var creatureList in population.Values)
+        {
+            for (int i = creatureList.Count - 1; i >= 0; i--)
+            {
+                if (creatureList[i] != null) Destroy(creatureList[i].gameObject);
+            }
+            creatureList.Clear();
         }
     }
     #endregion
@@ -196,7 +246,7 @@ public class PopulationManager : MonoBehaviour
         activeSpeciesNames.Clear();
         bestFitnessPerSpecies.Clear();
     }
-    
+
     public void PackSimulationData(WorldSaveState state)
     {
         state.activeSpeciesNames = new List<string>(this.activeSpeciesNames);
@@ -228,7 +278,7 @@ public class PopulationManager : MonoBehaviour
             SpeciesConfiguration config = speciesConfigMap[data.speciesName];
             NeuralNetwork brain = new NeuralNetwork(config.networkLayers);
             brain.LoadAndTransferData(data.brainData);
-            
+
             Creature creature = SpawnCreature(config, data.position, brain);
             if (creature.GetComponent<Rigidbody2D>() != null) creature.GetComponent<Rigidbody2D>().linearVelocity = data.velocity;
         }

@@ -54,7 +54,7 @@ public class SpeciesConfiguration
     public int[] networkLayers;
 
     [Header("Evolution")]
-    [Range(0f, 1f)] public float baseMutationRate = 0.05f;
+    [Range(0f, 1f)] public float baseMutationRate = 0.1f;
     [Range(0f, 1f)] public float baseMutationStrength = 0.1f;
 }
 
