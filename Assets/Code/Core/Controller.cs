@@ -174,7 +174,7 @@ public class Controller : MonoBehaviour
         {
             if (currentSelectedItem != null)
             {
-                currentSelectedItem.Place(this, worldManager.groundTilemap, currentCell);
+                currentSelectedItem.Place(this, worldManager, currentCell);
             }
         }
         else if (Mouse.current.rightButton.isPressed)

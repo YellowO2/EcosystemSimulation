@@ -66,17 +66,24 @@ public class JumpingCreature : Creature
         isGrounded = Physics2D.Raycast(transform.position, Vector2.down, raycastDistance, groundLayer);
         if (isGrounded)
         {
-           Debug.Log("Creature is grounded.");
+            Debug.Log("Creature is grounded.");
         }
     }
 
-    void OnCollisionEnter2D(Collision2D collision)
+    void OnTriggerEnter2D(Collider2D other)
     {
-        if ((foodLayer.value & (1 << collision.gameObject.layer)) != 0)
+        // Check if the object we overlapped is on the food layer
+        if ((foodLayer.value & (1 << other.gameObject.layer)) != 0)
         {
-            Debug.Log("Creature ate food!");
-            energy += 50f;
-            Destroy(collision.gameObject);
+            Plant plant = other.GetComponent<Plant>();
+            if (plant != null)
+            {
+                Debug.Log("Creature ate food!");
+
+                float energyGained = plant.BeEaten();
+                energy += energyGained;
+
+            }
         }
     }
 }

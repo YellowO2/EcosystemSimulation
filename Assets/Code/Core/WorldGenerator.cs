@@ -12,6 +12,7 @@ public class WorldGenerator : MonoBehaviour
     public PolygonCollider2D waterCollider;
     public GameObject foodPrefab;
     public LayerMask groundLayer;
+    public WorldObjectDatabase worldObjectDatabase;
 
     [Header("Tile Assets")]
     public Tile dirtTile;
@@ -199,15 +200,32 @@ public class WorldGenerator : MonoBehaviour
     {
         state.presetName = this.currentPreset.presetName;
         state.worldGenSeed = this.seed;
+        
+        // Pack all tile changes
         state.mapChanges = mapChanges.Select(kv => new TileChange { position = kv.Key, tileName = kv.Value }).ToList();
 
+        // Pack all food positions
         state.foodPositions.Clear();
         GameObject[] foodItems = GameObject.FindGameObjectsWithTag("Food");
         foreach (var food in foodItems)
         {
             state.foodPositions.Add(food.transform.position);
         }
+        
+        // Scan the scene and pack all World Objects
+        state.worldObjects.Clear();
+        WorldObject[] objectsToSave = FindObjectsOfType<WorldObject>();
+        foreach (var obj in objectsToSave)
+        {
+            state.worldObjects.Add(new WorldObjectData 
+            {
+                objectId = obj.objectId,
+                position = obj.transform.position,
+                timeSinceCreation = obj.timeSinceCreation
+            });
+        }
     }
+
 
     public void LoadWorldFromState(WorldSaveState state, WorldPreset preset)
     {
@@ -226,6 +244,21 @@ public class WorldGenerator : MonoBehaviour
         foreach (var pos in state.foodPositions)
         {
             Instantiate(foodPrefab, pos, Quaternion.identity);
+        }
+        foreach (var objectData in state.worldObjects)
+        {
+            GameObject prefab = worldObjectDatabase.GetPrefabById(objectData.objectId);
+            if (prefab != null)
+            {
+                GameObject newInstance = Instantiate(prefab, objectData.position, Quaternion.identity);
+                WorldObject worldObjComp = newInstance.GetComponent<WorldObject>();
+                
+                // Restore its saved state so the object can initialize itself correctly
+                if(worldObjComp != null)
+                {
+                    worldObjComp.timeSinceCreation = objectData.timeSinceCreation;
+                }
+            }
         }
     }
 

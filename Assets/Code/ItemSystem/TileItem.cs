@@ -7,8 +7,8 @@ public class TileItem : PlaceableItem
 {
     public TileBase tileToPlace; // The specific Tile asset to place
 
-    public override void Place(Controller controller, Tilemap tilemap, Vector3Int cellPosition)
+    public override void Place(Controller controller, WorldGenerator worldGenerator, Vector3Int cellPosition)
     {
-        tilemap.SetTile(cellPosition, tileToPlace);
+        worldGenerator.SetTile(cellPosition, tileToPlace);
     }
 }
