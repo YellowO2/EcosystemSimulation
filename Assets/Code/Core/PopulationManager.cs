@@ -13,6 +13,7 @@ public class PopulationManager : MonoBehaviour
     public SimulationMode currentMode;
     public enum SimulationMode { Gym, Ecosystem }
     public float generationTime = 20f;
+    public int populationOverride = 0; // 0 means use species default
     [Range(0f, 5f)] public float globalMutationMultiplier = 1f;
     #endregion
 
@@ -83,8 +84,10 @@ public class PopulationManager : MonoBehaviour
                 Debug.Log($"Loaded champion brain for {speciesName}.");
             }
 
+            int popSize = populationOverride > 0 ? populationOverride : config.initialPopulation;
+
             // Spawn the initial population from the seed brain (loaded or random)
-            for (int i = 0; i < config.initialPopulation; i++)
+            for (int i = 0; i < popSize; i++)
             {
                 NeuralNetwork childBrain = new NeuralNetwork(seedBrain);
                 if (i > 0) childBrain.Mutate(config.baseMutationRate, config.baseMutationStrength);
@@ -146,7 +149,7 @@ public class PopulationManager : MonoBehaviour
             }
 
             var newBrains = new List<NeuralNetwork>();
-            int targetPopulation = config.initialPopulation;
+            int targetPopulation = populationOverride > 0 ? populationOverride : config.initialPopulation;
 
             // guarantee at least one elite (unchanged brain) and one immigrant (random)
             int eliteCount = Mathf.Max(1, (int)(targetPopulation * 0.1f)); // 10% is a good standard for elites

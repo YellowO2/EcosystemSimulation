@@ -34,6 +34,8 @@ public class Controller : MonoBehaviour
     private VisualElement speciesListContainer;
     private Slider timeScaleSlider;
     private Slider mutationSlider;
+    private Slider durationSlider;
+    private Slider populationSlider;
     private Button saveWorldButton;
     private Label simStatsLabel;
     #endregion
@@ -57,10 +59,14 @@ public class Controller : MonoBehaviour
 
         timeScaleSlider = root.Q<Slider>("time-scale-slider");
         mutationSlider = root.Q<Slider>("mutation-slider");
+        durationSlider = root.Q<Slider>("duration-slider");
+        populationSlider = root.Q<Slider>("population-slider");
         simStatsLabel = root.Q<Label>("sim-stats-label");
         saveWorldButton = root.Q<Button>("save-world-button");
         timeScaleSlider.RegisterValueChangedCallback(evt => HandleTimeScaleChanged(evt.newValue));
         mutationSlider.RegisterValueChangedCallback(evt => HandleMutationChanged(evt.newValue));
+        durationSlider.RegisterValueChangedCallback(evt => HandleDurationChanged(evt.newValue));
+        populationSlider.RegisterValueChangedCallback(evt => HandlePopulationChanged(evt.newValue));
         saveWorldButton.clicked += HandleSaveCurrentWorld;
 
         hotbarSlotsContainer = root.Q<VisualElement>("hotbar-slots-container");
@@ -78,6 +84,8 @@ public class Controller : MonoBehaviour
         PopulateSpeciesToggles();
         timeScaleSlider.value = Time.timeScale;
         mutationSlider.value = populationManager.globalMutationMultiplier;
+        durationSlider.value = populationManager.generationTime;
+        populationSlider.value = populationManager.populationOverride > 0 ? populationManager.populationOverride : 50;
         UpdateSimStatsText();
 
         PopulateHotbar();
@@ -165,7 +173,7 @@ public class Controller : MonoBehaviour
         if (Keyboard.current.upArrowKey.isPressed) mainCamera.transform.position += new Vector3(0, cameraSpeed, 0);
         if (Keyboard.current.downArrowKey.isPressed) mainCamera.transform.position += new Vector3(0, -cameraSpeed, 0);
     }
-    
+
     private void HandleConstruction()
     {
         Vector3 worldPoint = mainCamera.ScreenToWorldPoint(Mouse.current.position.ReadValue());
@@ -218,7 +226,7 @@ public class Controller : MonoBehaviour
             hotbarSlotsContainer.Add(slot);
         }
     }
-    
+
     private void SelectItem(PlaceableItem item, VisualElement slotElement)
     {
         if (currentlySelectedSlotElement != null)
@@ -242,12 +250,26 @@ public class Controller : MonoBehaviour
         UpdateSimStatsText();
     }
 
+    private void HandleDurationChanged(float value)
+    {
+        populationManager.generationTime = value;
+        UpdateSimStatsText();
+    }
+
+    private void HandlePopulationChanged(float value)
+    {
+        populationManager.populationOverride = (int)value;
+        UpdateSimStatsText();
+    }
+    
     private void UpdateSimStatsText()
     {
         float speed = timeScaleSlider.value;
         float mutation = mutationSlider.value;
+        float duration = durationSlider.value;
+        int pop = (int)populationSlider.value;
         int generation = populationManager.currentGeneration;
-        simStatsLabel.text = $"Gen: {generation} | Speed: {speed:F1}x | Mutation: {mutation:F1}x";
+        simStatsLabel.text = $"Gen: {generation} | Pop: {pop} | Speed: {speed:F1}x | Mutation: {mutation:F1}x | Duration: {duration:F0}s";
     }
     #endregion
 }
