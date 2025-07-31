@@ -31,6 +31,10 @@ public class WorldGenerator : MonoBehaviour
     void Awake()
     {
         InitializeTileAssets();
+        if (worldObjectDatabase != null)
+        {
+            worldObjectDatabase.Initialize();
+        }
     }
 
     private void InitializeTileAssets()
@@ -47,8 +51,15 @@ public class WorldGenerator : MonoBehaviour
     {
         groundTilemap.ClearAllTiles();
         mapChanges.Clear();
+
         GameObject[] foodItems = GameObject.FindGameObjectsWithTag("Food");
         foreach (GameObject food in foodItems) { Destroy(food); }
+
+        WorldObject[] worldObjects = FindObjectsOfType<WorldObject>();
+        foreach (var obj in worldObjects)
+        {
+            Destroy(obj.gameObject);
+        }
     }
     #endregion
 
@@ -75,53 +86,42 @@ public class WorldGenerator : MonoBehaviour
 
     private void GenerateWorld_ClimbingChallenge()
     {
-        // Make sure old food is gone, since we place it manually here.
         GameObject[] oldFood = GameObject.FindGameObjectsWithTag("Food");
         foreach (GameObject food in oldFood) { Destroy(food); }
 
-        // --- Configuration for the staircase ---
         int startX = -currentPreset.worldWidth / 2;
         int platformWidth = 10;
         int numberOfSteps = 15;
-        Vector2Int stepHeightRange = new Vector2Int(2, 5); // Min/max Y increase per step
-        Vector2Int stepGapRange = new Vector2Int(3, 6);   // Min/max X gap between steps
+        Vector2Int stepHeightRange = new Vector2Int(2, 5);
+        Vector2Int stepGapRange = new Vector2Int(3, 6);
 
-        // --- Generation Logic ---
         int currentX = startX;
         int currentY = currentPreset.groundLevel;
 
-        // Create the starting platform
         for (int x = currentX; x < currentX + platformWidth * 2; x++)
         {
-            groundTilemap.SetTile(new Vector3Int(x, currentY, 0), grassTile);
+            SetTile(new Vector3Int(x, currentY, 0), grassTile);
             for (int y = 0; y < currentY; y++)
             {
-                groundTilemap.SetTile(new Vector3Int(x, y, 0), dirtTile);
+                SetTile(new Vector3Int(x, y, 0), dirtTile);
             }
         }
-        // Place food on the first platform
         Instantiate(foodPrefab, new Vector3(currentX + 2, currentY + 1.5f, 0), Quaternion.identity);
 
-        // Create the subsequent steps
         for (int i = 0; i < numberOfSteps; i++)
         {
-            // Determine the position of the next step
             currentX += platformWidth + Random.Range(stepGapRange.x, stepGapRange.y);
             currentY += Random.Range(stepHeightRange.x, stepHeightRange.y);
 
-            // Build the platform
             for (int x_offset = 0; x_offset < platformWidth; x_offset++)
             {
                 int x = currentX + x_offset;
-                groundTilemap.SetTile(new Vector3Int(x, currentY, 0), grassTile);
-                // Fill underneath with dirt
+                SetTile(new Vector3Int(x, currentY, 0), grassTile);
                 for (int y = 0; y < currentY; y++)
                 {
-                    groundTilemap.SetTile(new Vector3Int(x, y, 0), dirtTile);
+                    SetTile(new Vector3Int(x, y, 0), dirtTile);
                 }
             }
-
-            // Place a food item on the new platform to encourage jumping
             Vector3 foodPosition = new Vector3(currentX + platformWidth / 2f, currentY + 1.5f, 0);
             Instantiate(foodPrefab, foodPosition, Quaternion.identity);
         }
@@ -135,8 +135,8 @@ public class WorldGenerator : MonoBehaviour
 
         for (int y = 0; y < currentPreset.groundLevel + 100; y++)
         {
-            groundTilemap.SetTile(new Vector3Int(startX - 1, y, 0), dirtTile);
-            groundTilemap.SetTile(new Vector3Int(endX, y, 0), dirtTile);
+            SetTile(new Vector3Int(startX - 1, y, 0), dirtTile);
+            SetTile(new Vector3Int(endX, y, 0), dirtTile);
         }
 
         for (int x = startX; x < endX; x++)
@@ -144,15 +144,15 @@ public class WorldGenerator : MonoBehaviour
             float noiseValue = Mathf.PerlinNoise((x + currentPreset.worldWidth / 2f) * currentPreset.noiseScale + seed, seed);
             int terrainHeight = currentPreset.groundLevel + (int)(noiseValue * currentPreset.noiseAmplitude);
             terrainPoints.Add(new Vector2(x, terrainHeight + 1));
-            groundTilemap.SetTile(new Vector3Int(x, terrainHeight, 0), grassTile);
+            SetTile(new Vector3Int(x, terrainHeight, 0), grassTile);
 
             for (int y = 0; y < terrainHeight; y++)
             {
-                groundTilemap.SetTile(new Vector3Int(x, y, 0), dirtTile);
+                SetTile(new Vector3Int(x, y, 0), dirtTile);
             }
             for (int y = terrainHeight + 1; y < currentPreset.waterLevel; y++)
             {
-                groundTilemap.SetTile(new Vector3Int(x, y, 0), waterTile);
+                SetTile(new Vector3Int(x, y, 0), waterTile);
             }
         }
 
@@ -178,10 +178,10 @@ public class WorldGenerator : MonoBehaviour
 
         for (int x = startX; x < endX; x++)
         {
-            groundTilemap.SetTile(new Vector3Int(x, currentPreset.groundLevel, 0), grassTile);
+            SetTile(new Vector3Int(x, currentPreset.groundLevel, 0), grassTile);
             for (int y = 0; y < currentPreset.groundLevel; y++)
             {
-                groundTilemap.SetTile(new Vector3Int(x, y, 0), dirtTile);
+                SetTile(new Vector3Int(x, y, 0), dirtTile);
             }
         }
     }
@@ -201,10 +201,8 @@ public class WorldGenerator : MonoBehaviour
         state.presetName = this.currentPreset.presetName;
         state.worldGenSeed = this.seed;
         
-        // Pack all tile changes
         state.mapChanges = mapChanges.Select(kv => new TileChange { position = kv.Key, tileName = kv.Value }).ToList();
 
-        // Pack all food positions
         state.foodPositions.Clear();
         GameObject[] foodItems = GameObject.FindGameObjectsWithTag("Food");
         foreach (var food in foodItems)
@@ -212,7 +210,6 @@ public class WorldGenerator : MonoBehaviour
             state.foodPositions.Add(food.transform.position);
         }
         
-        // Scan the scene and pack all World Objects
         state.worldObjects.Clear();
         WorldObject[] objectsToSave = FindObjectsOfType<WorldObject>();
         foreach (var obj in objectsToSave)
@@ -233,18 +230,18 @@ public class WorldGenerator : MonoBehaviour
         this.seed = state.worldGenSeed;
 
         ClearWorld();
-        GenerateBaseWorld();
-
+        
         foreach (var change in state.mapChanges)
         {
             tileAssets.TryGetValue(change.tileName, out TileBase tileToSet);
-            groundTilemap.SetTile(change.position, tileToSet);
-            mapChanges[change.position] = change.tileName;
+            SetTile(change.position, tileToSet);
         }
+
         foreach (var pos in state.foodPositions)
         {
             Instantiate(foodPrefab, pos, Quaternion.identity);
         }
+
         foreach (var objectData in state.worldObjects)
         {
             GameObject prefab = worldObjectDatabase.GetPrefabById(objectData.objectId);
@@ -253,7 +250,6 @@ public class WorldGenerator : MonoBehaviour
                 GameObject newInstance = Instantiate(prefab, objectData.position, Quaternion.identity);
                 WorldObject worldObjComp = newInstance.GetComponent<WorldObject>();
                 
-                // Restore its saved state so the object can initialize itself correctly
                 if(worldObjComp != null)
                 {
                     worldObjComp.timeSinceCreation = objectData.timeSinceCreation;
@@ -268,10 +264,8 @@ public class WorldGenerator : MonoBehaviour
         Vector2 rayStart = new Vector2(randomX, 100);
 
         RaycastHit2D hit = Physics2D.Raycast(rayStart, Vector2.down, 200, groundLayer);
-        Debug.Log("Raycast from hit: " + hit.collider?.name);
         if (hit.collider != null)
         {
-            Debug.Log("Spawn point found: " + hit.point);
             return hit.point + new Vector2(0, 1f);
         }
         return new Vector2(0, currentPreset.groundLevel + 1);
@@ -320,7 +314,6 @@ public class WorldGenerator : MonoBehaviour
             }
             else
             {
-                // For dry worlds, spawn above ground
                 randomPoint.y = currentPreset.groundLevel + 1;
                 Instantiate(foodPrefab, randomPoint, Quaternion.identity);
                 spawnedCount++;

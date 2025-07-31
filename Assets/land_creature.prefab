@@ -582,7 +582,7 @@ GameObject:
   - component: {fileID: 8542461555086082206}
   - component: {fileID: 7365118742918922039}
   - component: {fileID: 6757781356523092609}
-  - component: {fileID: 3927576210946614625}
+  - component: {fileID: 2021670182419349622}
   m_Layer: 8
   m_Name: land_creature
   m_TagString: Creature
@@ -715,8 +715,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   detectionRadius: 10
---- !u!61 &3927576210946614625
-BoxCollider2D:
+--- !u!70 &2021670182419349622
+CapsuleCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -750,14 +750,5 @@ BoxCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
-  m_SpriteTilingProperty:
-    border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 1, y: 1}
-    newSize: {x: 1, y: 2}
-    adaptiveTilingThreshold: 0.5
-    drawMode: 0
-    adaptiveTiling: 0
-  m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
-  m_EdgeRadius: 0
+  m_Direction: 0

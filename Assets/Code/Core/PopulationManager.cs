@@ -23,6 +23,7 @@ public class PopulationManager : MonoBehaviour
     private Dictionary<string, float> bestFitnessPerSpecies = new Dictionary<string, float>();
     private List<string> activeSpeciesNames = new List<string>();
     private float generationTimer;
+    public int currentGeneration { get; private set; }
     #endregion
 
 
@@ -66,6 +67,7 @@ public class PopulationManager : MonoBehaviour
         ClearSimulation();
         this.activeSpeciesNames = speciesToActivate;
         generationTimer = 0f;
+        currentGeneration = 1;
 
         foreach (string speciesName in activeSpeciesNames)
         {
@@ -117,6 +119,7 @@ public class PopulationManager : MonoBehaviour
     #region Gym Mode Logic
     private void RunNextGymGeneration()
     {
+        currentGeneration++;
         var nextGenerationBrains = new Dictionary<string, List<NeuralNetwork>>();
 
         foreach (string speciesName in activeSpeciesNames)
@@ -201,7 +204,7 @@ public class PopulationManager : MonoBehaviour
             return candidates[Random.Range(0, candidates.Count)].brain;
         }
 
-        // "Roulette Wheel" selection
+        // Roll for parent based on fitness
         float randomValue = Random.Range(0f, totalFitness);
         float currentSum = 0;
 
@@ -245,12 +248,14 @@ public class PopulationManager : MonoBehaviour
         }
         activeSpeciesNames.Clear();
         bestFitnessPerSpecies.Clear();
+        currentGeneration = 0;
     }
 
     public void PackSimulationData(WorldSaveState state)
     {
         state.activeSpeciesNames = new List<string>(this.activeSpeciesNames);
         state.creatures.Clear();
+        state.currentGeneration = this.currentGeneration;
         foreach (var creatureList in population.Values)
         {
             foreach (var creature in creatureList)
@@ -271,6 +276,7 @@ public class PopulationManager : MonoBehaviour
     {
         ClearSimulation();
         this.activeSpeciesNames = new List<string>(state.activeSpeciesNames);
+        this.currentGeneration = state.currentGeneration;
 
         foreach (var data in state.creatures)
         {

@@ -12,6 +12,7 @@ public class JumpingCreature : Creature
     public float detectionRadius = 10f;
 
     private bool isGrounded;
+    private Vector3 initialPosition;
 
     protected override float[] GatherInputs()
     {
@@ -38,6 +39,18 @@ public class JumpingCreature : Creature
         };
     }
 
+    private void Init()
+    {
+        this.Init();
+        initialPosition = transform.position;
+    }
+
+    protected override void UpdateFitnessAndEnergy()
+    {
+        float progressBonus = transform.position.x - initialPosition.x;
+        fitness = progressBonus;
+    }
+
     protected override void PerformAction(float[] outputs)
     {
         CheckGrounded();
@@ -54,12 +67,11 @@ public class JumpingCreature : Creature
         }
     }
 
-    protected override void UpdateFitnessAndEnergy()
+    public override void Init(NeuralNetwork brain, string speciesName)
     {
-        fitness = transform.position.x; // Fitness is how far right it gets and also from eating food
-        // energy -= 0.1f * Time.fixedDeltaTime; // Base energy decay
+        base.Init(brain, speciesName);
+        initialPosition = transform.position;
     }
-
     private void CheckGrounded()
     {
         float raycastDistance = transform.localScale.y / 2 + 0.1f;
@@ -78,7 +90,7 @@ public class JumpingCreature : Creature
 
                 float energyGained = plant.BeEaten();
                 energy += energyGained;
-                // fitness += 10; // Increase fitness based on energy gained
+                fitness += 200; // Increase fitness based on energy gained
 
             }
         }

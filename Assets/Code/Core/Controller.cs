@@ -98,6 +98,7 @@ public class Controller : MonoBehaviour
 
         HandleCameraControls();
         HandleConstruction();
+        UpdateSimStatsText();
     }
     #endregion
 
@@ -245,7 +246,8 @@ public class Controller : MonoBehaviour
     {
         float speed = timeScaleSlider.value;
         float mutation = mutationSlider.value;
-        simStatsLabel.text = $"Speed: {speed:F1}x | Mutation: {mutation:F1}x";
+        int generation = populationManager.currentGeneration;
+        simStatsLabel.text = $"Gen: {generation} | Speed: {speed:F1}x | Mutation: {mutation:F1}x";
     }
     #endregion
 }

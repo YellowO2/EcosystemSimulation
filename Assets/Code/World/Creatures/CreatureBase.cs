@@ -22,6 +22,8 @@ public abstract class Creature : MonoBehaviour
     [Header("Debug")]
     private (int count, float length, float angle, float[] distances)? whiskerDebugData;
     private float? detectionRadiusDebug;
+    
+
 
 
     protected Rigidbody2D rb;

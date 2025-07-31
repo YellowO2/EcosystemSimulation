@@ -5,7 +5,6 @@ using UnityEngine;
 [System.Serializable]
 public class WorldSaveState
 {
-    public int generation;
     public WorldType worldType;
     public string presetName;  // Name of the preset used for this world (might be removing later)
     public float worldGenSeed;
@@ -16,6 +15,8 @@ public class WorldSaveState
 
     // NEW list for plants, rocks, etc.
     public List<WorldObjectData> worldObjects = new List<WorldObjectData>();
+    public int currentGeneration; 
+    
 }
 
 [System.Serializable]
