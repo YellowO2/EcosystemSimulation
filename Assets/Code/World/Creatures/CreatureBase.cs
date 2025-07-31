@@ -1,6 +1,7 @@
 // Creature.cs
 using UnityEngine;
 using System;
+using System.ComponentModel.Design;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public abstract class Creature : MonoBehaviour
@@ -22,7 +23,7 @@ public abstract class Creature : MonoBehaviour
     [Header("Debug")]
     private (int count, float length, float angle, float[] distances)? whiskerDebugData;
     private float? detectionRadiusDebug;
-    
+
 
 
 
@@ -48,6 +49,7 @@ public abstract class Creature : MonoBehaviour
         float[] inputs = GatherInputs();
         float[] outputs = brain.FeedForward(inputs);
         PerformAction(outputs);
+        HandleSpriteFlipping();
 
         UpdateFitnessAndEnergy();
 
@@ -99,9 +101,33 @@ public abstract class Creature : MonoBehaviour
         return closest;
     }
 
-    protected float[] SenseWithWhiskers(int whiskerCount, int whiskerLength, float maxAngle, LayerMask layerMask)
+    
+
+    private void HandleSpriteFlipping()
+    {
+        // Get the horizontal velocity.
+        float horizontalVelocity = rb.linearVelocity.x;
+
+        // small threshold (0.1f) to prevent the creature from rapidly
+        // flipping back and forth if it's moving very slowly.
+        if (horizontalVelocity > 0.1f)
+        {
+            // Moving right
+            transform.localScale = new Vector3(1, 1, 1);
+        }
+        else if (horizontalVelocity < -0.1f)
+        {
+            // Moving left
+            transform.localScale = new Vector3(-1, 1, 1);
+        }
+        // If velocity is between -0.1 and 0.1, the sprite doesn't flip.
+    }
+
+    protected float[] SenseWithWhiskers(int whiskerCount, float whiskerLength, float maxAngle, LayerMask layerMask)
     {
         float[] whiskerInputs = new float[whiskerCount];
+        float[] whiskerDistances = new float[whiskerCount];
+
         float angleStep = (whiskerCount > 1) ? (maxAngle * 2) / (whiskerCount - 1) : 0;
 
         for (int i = 0; i < whiskerCount; i++)
@@ -111,27 +137,42 @@ public abstract class Creature : MonoBehaviour
 
             RaycastHit2D hit = Physics2D.Raycast(transform.position, direction, whiskerLength, layerMask);
 
-            whiskerInputs[i] = (hit.collider != null) ? 1f - (hit.distance / whiskerLength) : 0f;
+            if (hit.collider != null)
+            {
+                whiskerInputs[i] = 1f - (hit.distance / whiskerLength);
+                whiskerDistances[i] = hit.distance;
+            }
+            else
+            {
+                whiskerInputs[i] = 0f;
+                whiskerDistances[i] = whiskerLength;
+            }
         }
+
+        whiskerDebugData = (whiskerCount, whiskerLength, maxAngle, whiskerDistances);
+
         return whiskerInputs;
     }
 
     protected virtual void OnDrawGizmos()
     {
-        if (!Application.isPlaying) return;
+        if (!Application.isPlaying || !whiskerDebugData.HasValue) return;
 
-        if (whiskerDebugData.HasValue)
+        var (count, length, maxAngle, distances) = whiskerDebugData.Value;
+
+        if (distances == null || distances.Length != count) return;
+
+        float angleStep = (count > 1) ? (maxAngle * 2) / (count - 1) : 0;
+
+        for (int i = 0; i < count; i++)
         {
-            var (count, length, maxAngle, distances) = whiskerDebugData.Value;
-            float angleStep = (count > 1) ? (maxAngle * 2) / (count - 1) : 0;
-            for (int i = 0; i < count; i++)
-            {
-                float currentAngle = -maxAngle + (i * angleStep);
-                Vector2 direction = Quaternion.Euler(0, 0, currentAngle) * transform.right;
-                float dist = distances[i];
-                Gizmos.color = dist < length ? Color.red : Color.green;
-                Gizmos.DrawLine(transform.position, (Vector2)transform.position + direction * dist);
-            }
+            float currentAngle = -maxAngle + (i * angleStep);
+            Vector2 direction = Quaternion.Euler(0, 0, currentAngle) * transform.right;
+
+            float dist = distances[i];
+
+            Gizmos.color = dist < length ? Color.red : Color.green;
+            Gizmos.DrawLine(transform.position, (Vector2)transform.position + direction * dist);
         }
 
         if (detectionRadiusDebug.HasValue)

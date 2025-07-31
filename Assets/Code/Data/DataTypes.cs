@@ -16,6 +16,7 @@ public class WorldSaveState
     // NEW list for plants, rocks, etc.
     public List<WorldObjectData> worldObjects = new List<WorldObjectData>();
     public int currentGeneration; 
+    public Vector3 spawnPointPosition;
     
 }
 

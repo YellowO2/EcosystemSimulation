@@ -221,6 +221,16 @@ public class WorldGenerator : MonoBehaviour
                 timeSinceCreation = obj.timeSinceCreation
             });
         }
+
+        // Save spawn point position
+        if (spawnPoint != null)
+        {
+            state.spawnPointPosition = spawnPoint.position;
+        }
+        else
+        {
+            state.spawnPointPosition = Vector3.zero;
+        }
     }
 
 
@@ -255,6 +265,12 @@ public class WorldGenerator : MonoBehaviour
                     worldObjComp.timeSinceCreation = objectData.timeSinceCreation;
                 }
             }
+        }
+
+        // Restore spawn point position
+        if (spawnPoint != null && state.spawnPointPosition != Vector3.zero)
+        {
+            spawnPoint.position = state.spawnPointPosition;
         }
     }
 

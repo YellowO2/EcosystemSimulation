@@ -1,11 +1,12 @@
 // JumpingCreature.cs
 using System;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class JumpingCreature : Creature
 {
     [Header("Jumper Settings")]
-    public float moveSpeed = 5f;
+    public float moveForce = 5f;
     public float jumpForce = 5f;
     public LayerMask groundLayer;
     public LayerMask foodLayer;
@@ -13,10 +14,11 @@ public class JumpingCreature : Creature
 
     private bool isGrounded;
     private Vector3 initialPosition;
+    private float progressBonus = 0f;
 
     protected override float[] GatherInputs()
     {
-        float[] groundWhiskerInputs = SenseWithWhiskers(5, 5, 90f, groundLayer);
+        float[] groundWhiskerInputs = SenseWithWhiskers(5, 5, 36, groundLayer);
 
         Transform closestFood = FindClosest(foodLayer, detectionRadius);
         Vector2 foodDir = Vector2.zero;
@@ -47,7 +49,9 @@ public class JumpingCreature : Creature
 
     protected override void UpdateFitnessAndEnergy()
     {
-        float progressBonus = transform.position.x - initialPosition.x;
+        // only update progress if max progress
+        progressBonus = Mathf.Max(transform.position.x - initialPosition.x, progressBonus);
+
         fitness = progressBonus;
     }
 
@@ -55,9 +59,8 @@ public class JumpingCreature : Creature
     {
         CheckGrounded();
         // Output 0: Horizontal movement
-        Vector2 velocity = rb.linearVelocity;
-        velocity.x = outputs[0] * moveSpeed;
-        rb.linearVelocity = velocity;
+        float moveInput = outputs[0];
+        rb.AddForce(new Vector2(moveInput * moveForce, 0f));
 
         // Output 1: Jump signal
         if (outputs[1] > 0.5f && isGrounded)
@@ -90,8 +93,7 @@ public class JumpingCreature : Creature
 
                 float energyGained = plant.BeEaten();
                 energy += energyGained;
-                fitness += 200; // Increase fitness based on energy gained
-
+                fitness += 100; // Increase fitness based on energy gained
             }
         }
     }
