@@ -11,13 +11,17 @@
         <ui:VisualElement name="hotbar-slots-container" style="flex-direction: row; background-color: rgba(0, 0, 0, 0.7); padding: 5px; border-radius: 5px;" />
     </ui:VisualElement>
     <ui:VisualElement style="position: absolute; bottom: 10px; left: 0; right: 0; align-items: center;">
-        <ui:VisualElement style="flex-direction: row; background-color: rgba(0, 0, 0, 0.7); padding: 5px 15px; border-radius: 5px; align-items: center;">
-            <ui:Slider name="duration-slider" label="Gen Duration" low-value="5" high-value="120" style="width: 150px; margin-right: 10px;" />
-            <ui:Slider name="population-slider" label="Population" low-value="10" high-value="200" style="width: 150px; margin-right: 10px;" />
-            <ui:Slider name="time-scale-slider" label="Speed" low-value="0.1" high-value="10" style="width: 150px; margin-right: 10px;" />
-            <ui:Slider name="mutation-slider" label="Mutation" low-value="0.1" high-value="5" style="width: 150px; margin-right: 10px;" />
-            <ui:Button name="save-world-button" text="Save World" style="margin-right: 20px;" />
-            <ui:Label name="sim-stats-label" text="Speed: 1.0x | Mutation: 1.0x" />
+        <ui:VisualElement style="background-color: rgba(0, 0, 0, 0.7); padding: 5px 15px; border-radius: 5px; align-items: center;">
+            <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 5px;">
+                <ui:Slider name="duration-slider" low-value="5" high-value="120" style="width: 120px; margin-right: 10px;" />
+                <ui:Slider name="population-slider" low-value="1" high-value="200" style="width: 120px; margin-right: 10px;" />
+                <ui:Slider name="time-scale-slider" low-value="0.1" high-value="10" style="width: 120px; margin-right: 10px;" />
+                <ui:Slider name="mutation-slider" low-value="1" high-value="5" style="width: 120px;" />
+            </ui:VisualElement>
+            <ui:VisualElement style="flex-direction: row; align-items: center;">
+                <ui:Button name="save-world-button" text="Save World" style="margin-right: 20px;" />
+                <ui:Label name="sim-stats-label" text="Speed: 1.0x | Mutation: 1.0x" />
+            </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
