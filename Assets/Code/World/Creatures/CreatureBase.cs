@@ -21,9 +21,12 @@ public abstract class Creature : MonoBehaviour
     public float reproductionEnergyCost = 60f;
 
     [Header("Debug")]
-    private (int count, float length, float angle, float[] distances)? whiskerDebugData;
+    private (int count, float length, float[] distances)? whiskerDebugData;
     private float? detectionRadiusDebug;
 
+    private int frameSkip = 4;
+    private int frameCounter;
+    private float[] lastBrainOutputs;
 
 
 
@@ -46,12 +49,27 @@ public abstract class Creature : MonoBehaviour
     {
         if (brain == null) return;
 
-        float[] inputs = GatherInputs();
-        float[] outputs = brain.FeedForward(inputs);
-        PerformAction(outputs);
-        HandleSpriteFlipping();
+        frameCounter++;
+        if (frameCounter >= frameSkip)
+        {
+            frameCounter = 0; // Reset counter
 
+            // --- Run Expensive Logic ---
+            float[] inputs = GatherInputs();
+            float[] outputs = brain.FeedForward(inputs);
+            lastBrainOutputs = outputs; // Store the new decision
+            PerformAction(outputs);
+        }
+        else if (lastBrainOutputs != null)
+        {
+            // --- Reuse Old Decision ---
+            // On skipped frames, just re-apply the last action.
+            PerformAction(lastBrainOutputs);
+        }
+
+        HandleSpriteFlipping();
         UpdateFitnessAndEnergy();
+
 
         if (energy >= energyToReproduce)
         {
@@ -101,7 +119,7 @@ public abstract class Creature : MonoBehaviour
         return closest;
     }
 
-    
+
 
     private void HandleSpriteFlipping()
     {
@@ -123,17 +141,20 @@ public abstract class Creature : MonoBehaviour
         // If velocity is between -0.1 and 0.1, the sprite doesn't flip.
     }
 
-    protected float[] SenseWithWhiskers(int whiskerCount, float whiskerLength, float maxAngle, LayerMask layerMask)
+    protected float[] SenseWithWhiskers(int whiskerCount, float whiskerLength, LayerMask layerMask)
     {
         float[] whiskerInputs = new float[whiskerCount];
         float[] whiskerDistances = new float[whiskerCount];
 
-        float angleStep = (whiskerCount > 1) ? (maxAngle * 2) / (whiskerCount - 1) : 0;
+        float totalAngleSpread = 180f;
+        float startAngle = -totalAngleSpread / 2f;
+        float angleStep = totalAngleSpread / (whiskerCount - 1);
+        Vector2 facingDirection = (transform.localScale.x > 0) ? (Vector2)transform.right : -(Vector2)transform.right;
 
         for (int i = 0; i < whiskerCount; i++)
         {
-            float currentAngle = -maxAngle + (i * angleStep);
-            Vector2 direction = Quaternion.Euler(0, 0, currentAngle) * transform.right;
+            float currentAngle = startAngle + (i * angleStep);
+            Vector2 direction = Quaternion.Euler(0, 0, currentAngle) * facingDirection;
 
             RaycastHit2D hit = Physics2D.Raycast(transform.position, direction, whiskerLength, layerMask);
 
@@ -149,36 +170,37 @@ public abstract class Creature : MonoBehaviour
             }
         }
 
-        whiskerDebugData = (whiskerCount, whiskerLength, maxAngle, whiskerDistances);
+        whiskerDebugData = (whiskerCount, whiskerLength, whiskerDistances);
 
         return whiskerInputs;
     }
 
-    protected virtual void OnDrawGizmos()
+    protected virtual void OnDrawGizmosSelected()
     {
         if (!Application.isPlaying || !whiskerDebugData.HasValue) return;
 
-        var (count, length, maxAngle, distances) = whiskerDebugData.Value;
+        var (count, length, distances) = whiskerDebugData.Value;
 
         if (distances == null || distances.Length != count) return;
 
-        float angleStep = (count > 1) ? (maxAngle * 2) / (count - 1) : 0;
-
+        float totalAngleSpread = 180f;
+        float startAngle = -totalAngleSpread / 2f;
+        float angleStep = (count > 1) ? totalAngleSpread / (count - 1) : 0;
+        Vector2 facingDirection = (transform.localScale.x > 0) ? (Vector2)transform.right : -(Vector2)transform.right;
         for (int i = 0; i < count; i++)
         {
-            float currentAngle = -maxAngle + (i * angleStep);
-            Vector2 direction = Quaternion.Euler(0, 0, currentAngle) * transform.right;
-
+            float currentAngle = startAngle + (i * angleStep);
+            Vector2 direction = Quaternion.Euler(0, 0, currentAngle) * facingDirection;
             float dist = distances[i];
 
             Gizmos.color = dist < length ? Color.red : Color.green;
             Gizmos.DrawLine(transform.position, (Vector2)transform.position + direction * dist);
         }
 
-        if (detectionRadiusDebug.HasValue)
-        {
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(transform.position, detectionRadiusDebug.Value);
-        }
+        // if (detectionRadiusDebug.HasValue)
+        // {
+        //     Gizmos.color = Color.yellow;
+        //     Gizmos.DrawWireSphere(transform.position, detectionRadiusDebug.Value);
+        // }
     }
 }

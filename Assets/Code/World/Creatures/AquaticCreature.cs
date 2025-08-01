@@ -28,7 +28,7 @@ public class AquaticCreature : Creature
 
     protected override float[] GatherInputs()
     {
-        float[] wallInputs = SenseWithWhiskers(5, whiskerLength,45, groundLayer);
+        float[] wallInputs = SenseWithWhiskers(5, whiskerLength, groundLayer);
         
         Transform closestFood = FindClosest(foodLayer, foodDetectionRadius);
         Vector2 foodDirection = closestFood ? (closestFood.position - transform.position).normalized : Vector2.zero;

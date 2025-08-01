@@ -11,6 +11,7 @@ public class JumpingCreature : Creature
     public LayerMask groundLayer;
     public LayerMask foodLayer;
     public float detectionRadius = 10f;
+    private int foodEaten = 0;
 
     private bool isGrounded;
     private Vector3 initialPosition;
@@ -18,8 +19,8 @@ public class JumpingCreature : Creature
 
     protected override float[] GatherInputs()
     {
-        float[] groundWhiskerInputs = SenseWithWhiskers(5, 5, 36, groundLayer);
-
+        float[] groundWhiskerInputs = SenseWithWhiskers(5, 5, groundLayer);
+        
         Transform closestFood = FindClosest(foodLayer, detectionRadius);
         Vector2 foodDir = Vector2.zero;
         if (closestFood != null)
@@ -50,9 +51,9 @@ public class JumpingCreature : Creature
     protected override void UpdateFitnessAndEnergy()
     {
         // only update progress if max progress
-        progressBonus = Mathf.Max(transform.position.x - initialPosition.x, progressBonus);
+        // progressBonus = Mathf.Max(transform.position.x - initialPosition.x, progressBonus);
 
-        fitness = progressBonus;
+        // fitness = progressBonus;
     }
 
     protected override void PerformAction(float[] outputs)
@@ -93,7 +94,8 @@ public class JumpingCreature : Creature
 
                 float energyGained = plant.BeEaten();
                 energy += energyGained;
-                fitness += 100; // Increase fitness based on energy gained
+                fitness += 30;
+                foodEaten++;
             }
         }
     }

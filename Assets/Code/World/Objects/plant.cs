@@ -4,7 +4,7 @@ using UnityEngine;
 public class Plant : WorldObject 
 {
     [Header("Growth")]
-    public float timeToMature = 20f;
+    public float timeToMature = 30f;
     private float growthProgress = 0f;
     private Vector3 initialScale;
 
