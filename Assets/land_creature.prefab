@@ -706,15 +706,19 @@ MonoBehaviour:
   fitness: 0
   energyToReproduce: 150
   reproductionEnergyCost: 60
-  moveSpeed: 5
-  jumpForce: 8
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 8
   foodLayer:
     serializedVersion: 2
     m_Bits: 64
-  detectionRadius: 10
+  predatorLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  foodDetectionRadius: 10
+  predatorDetectionRadius: 6
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  moveForce: 5
+  jumpForce: 8
 --- !u!70 &2021670182419349622
 CapsuleCollider2D:
   m_ObjectHideFlags: 0

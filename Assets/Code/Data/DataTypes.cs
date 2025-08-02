@@ -10,7 +10,6 @@ public class WorldSaveState
     public float worldGenSeed;
     public List<TileChange> mapChanges = new List<TileChange>();
     public List<CreatureSaveData> creatures = new List<CreatureSaveData>();
-    public List<Vector3> foodPositions = new List<Vector3>();
     public List<string> activeSpeciesNames = new List<string>();
 
     // NEW list for plants, rocks, etc.
@@ -52,7 +51,6 @@ public class SpeciesConfiguration
 {
     public string speciesName;
     public GameObject prefab;
-    public int initialPopulation = 10;
     public int[] networkLayers;
 
     [Header("Evolution")]

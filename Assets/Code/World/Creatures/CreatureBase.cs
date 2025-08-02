@@ -1,7 +1,5 @@
-// Creature.cs
 using UnityEngine;
 using System;
-using System.ComponentModel.Design;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public abstract class Creature : MonoBehaviour
@@ -15,10 +13,21 @@ public abstract class Creature : MonoBehaviour
     [Header("State")]
     public float energy = 100f;
     public float fitness = 0f;
+    protected bool isInWater; // Standardized flag for environment state
 
     [Header("Reproduction")]
     public float energyToReproduce = 150f;
     public float reproductionEnergyCost = 60f;
+
+    [Header("Senses")]
+    public LayerMask foodLayer;
+    public LayerMask predatorLayer;
+    public float foodDetectionRadius = 10f;
+    public float predatorDetectionRadius = 6f;
+    protected int whiskerCount = 5;
+    protected float whiskerLength = 5f;
+    protected bool isGrounded;
+    public LayerMask groundLayer;
 
     [Header("Debug")]
     private (int count, float length, float[] distances)? whiskerDebugData;
@@ -27,10 +36,9 @@ public abstract class Creature : MonoBehaviour
     private int frameSkip = 4;
     private int frameCounter;
     private float[] lastBrainOutputs;
-
-
-
     protected Rigidbody2D rb;
+    private float originalGravityScale;
+    private float originalLinearDrag;
 
     public virtual void Init(NeuralNetwork brain, string speciesName)
     {
@@ -43,6 +51,8 @@ public abstract class Creature : MonoBehaviour
     protected virtual void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        originalGravityScale = rb.gravityScale;
+        originalLinearDrag = rb.linearDamping;
     }
 
     protected virtual void FixedUpdate()
@@ -52,24 +62,19 @@ public abstract class Creature : MonoBehaviour
         frameCounter++;
         if (frameCounter >= frameSkip)
         {
-            frameCounter = 0; // Reset counter
-
-            // --- Run Expensive Logic ---
+            frameCounter = 0;
             float[] inputs = GatherInputs();
             float[] outputs = brain.FeedForward(inputs);
-            lastBrainOutputs = outputs; // Store the new decision
+            lastBrainOutputs = outputs;
             PerformAction(outputs);
         }
         else if (lastBrainOutputs != null)
         {
-            // --- Reuse Old Decision ---
-            // On skipped frames, just re-apply the last action.
             PerformAction(lastBrainOutputs);
         }
 
         HandleSpriteFlipping();
         UpdateFitnessAndEnergy();
-
 
         if (energy >= energyToReproduce)
         {
@@ -81,11 +86,44 @@ public abstract class Creature : MonoBehaviour
         }
     }
 
-    // --- Abstract Methods: Must be implemented by child classes ---
-    protected abstract float[] GatherInputs();
-    protected abstract void PerformAction(float[] outputs);
-    protected abstract void UpdateFitnessAndEnergy();
+    protected virtual float[] GatherInputs()
+    {
+        // Vision: Wall/Obstacle detection
+        float[] whiskerInputs = SenseWithWhiskers(whiskerCount, whiskerLength, groundLayer);
 
+        // Senses: Food and Predator location
+        Transform closestFood = FindClosest(foodLayer, foodDetectionRadius);
+        Vector2 foodDirection = closestFood ? (closestFood.position - transform.position).normalized : Vector2.zero;
+
+        Transform closestPredator = FindClosest(predatorLayer, predatorDetectionRadius);
+        Vector2 predatorDirection = closestPredator ? (closestPredator.position - transform.position).normalized : Vector2.zero;
+
+        // Proprioception: Internal state awareness
+        float[] internalStateInputs = {
+            isGrounded ? 1f : 0f,
+            isInWater ? 1f : 0f,
+            rb.linearVelocity.x / 10f,
+            rb.linearVelocity.y / 10f
+        };
+
+        // Combine all sensory data into a single, standardized array
+        float[] allInputs = new float[whiskerInputs.Length + 2 + 2 + 4];
+        whiskerInputs.CopyTo(allInputs, 0);
+        allInputs[whiskerInputs.Length] = foodDirection.x;
+        allInputs[whiskerInputs.Length + 1] = foodDirection.y;
+        allInputs[whiskerInputs.Length + 2] = predatorDirection.x;
+        allInputs[whiskerInputs.Length + 3] = predatorDirection.y;
+        internalStateInputs.CopyTo(allInputs, whiskerInputs.Length + 4);
+
+        return allInputs;
+    }
+    protected abstract void PerformAction(float[] outputs);
+
+    // Now virtual with a base implementation for universal energy cost
+    protected virtual void UpdateFitnessAndEnergy()
+    {
+        // Nothing for now
+    }
 
     private void Reproduce()
     {
@@ -100,12 +138,11 @@ public abstract class Creature : MonoBehaviour
 
     protected Transform FindClosest(LayerMask layer, float radius)
     {
-        // Store the radius for the gizmo to use
         detectionRadiusDebug = radius;
-
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, radius, layer);
         Transform closest = null;
         float minDistance = Mathf.Infinity;
+
         foreach (var hit in hits)
         {
             if (hit.transform == this.transform) continue;
@@ -119,26 +156,17 @@ public abstract class Creature : MonoBehaviour
         return closest;
     }
 
-
-
     private void HandleSpriteFlipping()
     {
-        // Get the horizontal velocity.
         float horizontalVelocity = rb.linearVelocity.x;
-
-        // small threshold (0.1f) to prevent the creature from rapidly
-        // flipping back and forth if it's moving very slowly.
         if (horizontalVelocity > 0.1f)
         {
-            // Moving right
             transform.localScale = new Vector3(1, 1, 1);
         }
         else if (horizontalVelocity < -0.1f)
         {
-            // Moving left
             transform.localScale = new Vector3(-1, 1, 1);
         }
-        // If velocity is between -0.1 and 0.1, the sprite doesn't flip.
     }
 
     protected float[] SenseWithWhiskers(int whiskerCount, float whiskerLength, LayerMask layerMask)
@@ -149,12 +177,13 @@ public abstract class Creature : MonoBehaviour
         float totalAngleSpread = 180f;
         float startAngle = -totalAngleSpread / 2f;
         float angleStep = totalAngleSpread / (whiskerCount - 1);
-        Vector2 facingDirection = (transform.localScale.x > 0) ? (Vector2)transform.right : -(Vector2)transform.right;
+        Vector2 facingDirection = (transform.localScale.x > 0) ? Vector2.right : Vector2.left;
 
         for (int i = 0; i < whiskerCount; i++)
         {
             float currentAngle = startAngle + (i * angleStep);
-            Vector2 direction = Quaternion.Euler(0, 0, currentAngle) * facingDirection;
+            Quaternion rotation = Quaternion.AngleAxis(currentAngle, Vector3.forward);
+            Vector2 direction = transform.TransformDirection(rotation * facingDirection);
 
             RaycastHit2D hit = Physics2D.Raycast(transform.position, direction, whiskerLength, layerMask);
 
@@ -171,7 +200,6 @@ public abstract class Creature : MonoBehaviour
         }
 
         whiskerDebugData = (whiskerCount, whiskerLength, whiskerDistances);
-
         return whiskerInputs;
     }
 
@@ -180,27 +208,56 @@ public abstract class Creature : MonoBehaviour
         if (!Application.isPlaying || !whiskerDebugData.HasValue) return;
 
         var (count, length, distances) = whiskerDebugData.Value;
-
         if (distances == null || distances.Length != count) return;
 
         float totalAngleSpread = 180f;
         float startAngle = -totalAngleSpread / 2f;
         float angleStep = (count > 1) ? totalAngleSpread / (count - 1) : 0;
-        Vector2 facingDirection = (transform.localScale.x > 0) ? (Vector2)transform.right : -(Vector2)transform.right;
+        Vector2 facingDirection = (transform.localScale.x > 0) ? Vector2.right : Vector2.left;
+
         for (int i = 0; i < count; i++)
         {
             float currentAngle = startAngle + (i * angleStep);
-            Vector2 direction = Quaternion.Euler(0, 0, currentAngle) * facingDirection;
+            Quaternion rotation = Quaternion.AngleAxis(currentAngle, Vector3.forward);
+            Vector2 direction = transform.TransformDirection(rotation * facingDirection);
             float dist = distances[i];
 
             Gizmos.color = dist < length ? Color.red : Color.green;
             Gizmos.DrawLine(transform.position, (Vector2)transform.position + direction * dist);
         }
-
         // if (detectionRadiusDebug.HasValue)
         // {
         //     Gizmos.color = Color.yellow;
         //     Gizmos.DrawWireSphere(transform.position, detectionRadiusDebug.Value);
         // }
+    }
+
+    protected virtual void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Water"))
+        {
+            Debug.Log($" entered water.");
+            isInWater = true;
+            rb.gravityScale = 0;
+            rb.linearDamping = 1;
+        }
+    }
+    
+    protected virtual void OnTriggerExit2D(Collider2D other)
+    {
+        if (other.CompareTag("Water"))
+        {
+            isInWater = false;
+            rb.gravityScale = originalGravityScale;
+            rb.linearDamping = originalLinearDrag;
+        }
+    }
+
+    protected virtual void CheckGrounded()
+    {
+        // A simple, universal raycast.
+        // A creature that flies or doesn't care about ground can override this to do nothing.
+        float raycastDistance = transform.localScale.y * 0.5f + 0.1f;
+        isGrounded = Physics2D.Raycast(transform.position, Vector2.down, raycastDistance, groundLayer);
     }
 }

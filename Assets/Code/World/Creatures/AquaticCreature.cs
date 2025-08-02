@@ -5,46 +5,8 @@ public class AquaticCreature : Creature
 {
     [Header("Aquatic Settings")]
     public float moveForce = 10f;
-    public float underwaterGravityScale = 0f;
-    public float underwaterDrag = 3f;
-    public LayerMask groundLayer;
-    public LayerMask predatorLayer;
-    public LayerMask foodLayer;
-    public int whiskerLength = 5;
-    public float foodDetectionRadius = 10f;
-    public float predatorDetectionRadius = 8f;
-
-    private bool isInWater;
-    private float originalGravityScale;
-    private float originalDrag;
     private float lastDistanceToFood = float.MaxValue;
-
-    protected override void Awake()
-    {
-        base.Awake();
-        originalGravityScale = rb.gravityScale;
-        originalDrag = rb.linearDamping;
-    }
-
-    protected override float[] GatherInputs()
-    {
-        float[] wallInputs = SenseWithWhiskers(5, whiskerLength, groundLayer);
-        
-        Transform closestFood = FindClosest(foodLayer, foodDetectionRadius);
-        Vector2 foodDirection = closestFood ? (closestFood.position - transform.position).normalized : Vector2.zero;
-
-        Transform closestPredator = FindClosest(predatorLayer, predatorDetectionRadius);
-        Vector2 predatorDirection = closestPredator ? (closestPredator.position - transform.position).normalized : Vector2.zero;
-
-        return wallInputs.Concat(new float[] {
-            foodDirection.x,
-            foodDirection.y,
-            predatorDirection.x,
-            predatorDirection.y,
-            rb.linearVelocity.x / 10f,
-            rb.linearVelocity.y / 10f
-        }).ToArray();
-    }
+    private float lastDistanceToPredator = 0f;
 
     protected override void PerformAction(float[] outputs)
     {
@@ -54,7 +16,7 @@ public class AquaticCreature : Creature
             rb.AddForce(force);
         }
 
-        if (rb.linearVelocity.sqrMagnitude > 0.01f) 
+        if (rb.linearVelocity.sqrMagnitude > 0.01f)
         {
             float angle = Mathf.Atan2(rb.linearVelocity.y, rb.linearVelocity.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
@@ -63,7 +25,7 @@ public class AquaticCreature : Creature
 
     protected override void UpdateFitnessAndEnergy()
     {
-        energy -= (0.5f + rb.linearVelocity.magnitude * 0.1f) * Time.fixedDeltaTime;
+        base.UpdateFitnessAndEnergy();
 
         Transform closestFood = FindClosest(foodLayer, foodDetectionRadius);
         if (closestFood != null)
@@ -71,21 +33,30 @@ public class AquaticCreature : Creature
             float currentDistance = Vector2.Distance(transform.position, closestFood.position);
             if (currentDistance < lastDistanceToFood)
             {
-                fitness += 0.1f;
+                fitness += 0.01f;
             }
             lastDistanceToFood = currentDistance;
         }
+        else
+        {
+            lastDistanceToFood = float.MaxValue;
+        }
+
+        Transform closestPredator = FindClosest(predatorLayer, predatorDetectionRadius);
+        if (closestPredator != null)
+        {
+            float currentDistance = Vector2.Distance(transform.position, closestPredator.position);
+            if (currentDistance > lastDistanceToPredator)
+            {
+                fitness += 0.02f; // Reward for increasing distance from predator
+            }
+            lastDistanceToPredator = currentDistance;
+        }
     }
 
-    void OnTriggerEnter2D(Collider2D other)
+    protected override void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Water"))
-        {
-            isInWater = true;
-            rb.gravityScale = underwaterGravityScale;
-            rb.linearDamping = underwaterDrag;
-            return;
-        }
+        base.OnTriggerEnter2D(other);
 
         if ((foodLayer.value & (1 << other.gameObject.layer)) != 0)
         {
@@ -95,18 +66,7 @@ public class AquaticCreature : Creature
                 float energyGained = plant.BeEaten();
                 energy += energyGained;
                 fitness += 30f;
-                return;
             }
-        }
-    }
-    
-    void OnTriggerExit2D(Collider2D other)
-    {
-        if (other.CompareTag("Water"))
-        {
-            isInWater = false;
-            rb.gravityScale = originalGravityScale;
-            rb.linearDamping = originalDrag;
         }
     }
 }

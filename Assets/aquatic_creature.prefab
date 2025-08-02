@@ -300,21 +300,18 @@ MonoBehaviour:
   fitness: 0
   energyToReproduce: 150
   reproductionEnergyCost: 60
-  moveForce: 10
-  underwaterGravityScale: 0
-  underwaterDrag: 3
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 0
-  predatorLayer:
-    serializedVersion: 2
-    m_Bits: 0
   foodLayer:
     serializedVersion: 2
-    m_Bits: 0
-  whiskerLength: 5
+    m_Bits: 64
+  predatorLayer:
+    serializedVersion: 2
+    m_Bits: 128
   foodDetectionRadius: 5
   predatorDetectionRadius: 8
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  moveForce: 10
 --- !u!1 &2579015650901110544
 GameObject:
   m_ObjectHideFlags: 0

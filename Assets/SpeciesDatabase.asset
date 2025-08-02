@@ -15,22 +15,16 @@ MonoBehaviour:
   allSpecies:
   - speciesName: Fish
     prefab: {fileID: 2003193231976353223, guid: 4010a6a65a956471aa0d6f29aaeffa4f, type: 3}
-    initialPopulation: 20
-    networkLayers: 0b0000000800000002000000
-    brainArchiveFile: preyBrains.json
+    networkLayers: 0d0000000900000002000000
     baseMutationRate: 0.2
     baseMutationStrength: 0.1
   - speciesName: FishPredator
     prefab: {fileID: 2003193231976353223, guid: 4010a6a65a956471aa0d6f29aaeffa4f, type: 3}
-    initialPopulation: 5
-    networkLayers: 0b0000000800000002000000
-    brainArchiveFile: predatorBrains.json
+    networkLayers: 0d0000000900000002000000
     baseMutationRate: 0.2
     baseMutationStrength: 0.1
   - speciesName: LandCreature
     prefab: {fileID: 7471676353888279426, guid: 0659196fe9027734ead426542cb1f5e3, type: 3}
-    initialPopulation: 10
-    networkLayers: 090000000700000002000000
-    brainArchiveFile: 
+    networkLayers: 0d0000000900000002000000
     baseMutationRate: 0.2
     baseMutationStrength: 0.1

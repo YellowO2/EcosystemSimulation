@@ -84,7 +84,7 @@ public class PopulationManager : MonoBehaviour
                 Debug.Log($"Loaded champion brain for {speciesName}.");
             }
 
-            int popSize = populationOverride > 0 ? populationOverride : config.initialPopulation;
+            int popSize = populationOverride > 0 ? populationOverride : 1;
 
             // Spawn the initial population from the seed brain (loaded or random)
             for (int i = 0; i < popSize; i++)
@@ -149,7 +149,7 @@ public class PopulationManager : MonoBehaviour
             }
 
             var newBrains = new List<NeuralNetwork>();
-            int targetPopulation = populationOverride > 0 ? populationOverride : config.initialPopulation;
+            int targetPopulation = populationOverride > 0 ? populationOverride : 1;
 
             // guarantee at least one elite (unchanged brain) and one immigrant (random)
             int eliteCount = Mathf.Max(1, (int)(targetPopulation * 0.1f)); // 10% is a good standard for elites
