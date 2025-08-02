@@ -16,8 +16,7 @@ public class JumpingCreature : Creature
 
         // Output 1: Jump Intent
         float jumpIntent = outputs[1];
-
-        if (jumpIntent > 0.1 && isGrounded)
+        if (jumpIntent > 0.1f && isGrounded)
         {
             float variableJumpForce = jumpForce * jumpIntent;
             rb.AddForce(new Vector2(0f, variableJumpForce), ForceMode2D.Impulse);

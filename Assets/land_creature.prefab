@@ -716,7 +716,7 @@ MonoBehaviour:
   predatorDetectionRadius: 6
   groundLayer:
     serializedVersion: 2
-    m_Bits: 8
+    m_Bits: 264
   moveForce: 5
   jumpForce: 8
 --- !u!70 &2021670182419349622

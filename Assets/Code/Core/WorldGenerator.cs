@@ -296,8 +296,8 @@ public class WorldGenerator : MonoBehaviour
             attempts++;
         }
     }
-    
-    private void SpawnObject(GameObject prefab, Vector3 position, float timeSinceCreation = 0f)
+
+    public void SpawnObject(GameObject prefab, Vector3 position, float timeSinceCreation = 0f)
     {
         GameObject newInstance = Instantiate(prefab, position, Quaternion.identity);
         WorldObject worldObjComp = newInstance.GetComponent<WorldObject>();

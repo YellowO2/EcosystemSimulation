@@ -19,6 +19,6 @@ public class GameObjectItem : PlaceableItem
         }
 
         Vector3 worldPosition = worldGenerator.groundTilemap.GetCellCenterWorld(cellPosition);
-        Instantiate(prefabToPlace, worldPosition, Quaternion.identity);
+        worldGenerator.SpawnObject(prefabToPlace, worldPosition, 0f);
     }
 }

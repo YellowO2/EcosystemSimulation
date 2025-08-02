@@ -58,7 +58,7 @@ public abstract class Creature : MonoBehaviour
     protected virtual void FixedUpdate()
     {
         if (brain == null) return;
-
+        CheckGrounded();
         frameCounter++;
         if (frameCounter >= frameSkip)
         {
@@ -73,7 +73,7 @@ public abstract class Creature : MonoBehaviour
             PerformAction(lastBrainOutputs);
         }
 
-        HandleSpriteFlipping();
+        // HandleSpriteFlipping();
         UpdateFitnessAndEnergy();
 
         if (energy >= energyToReproduce)
@@ -156,18 +156,18 @@ public abstract class Creature : MonoBehaviour
         return closest;
     }
 
-    private void HandleSpriteFlipping()
-    {
-        float horizontalVelocity = rb.linearVelocity.x;
-        if (horizontalVelocity > 0.1f)
-        {
-            transform.localScale = new Vector3(1, 1, 1);
-        }
-        else if (horizontalVelocity < -0.1f)
-        {
-            transform.localScale = new Vector3(-1, 1, 1);
-        }
-    }
+    // private void HandleSpriteFlipping()
+    // {
+    //     float horizontalVelocity = rb.linearVelocity.x;
+    //     if (horizontalVelocity > 0.1f)
+    //     {
+    //         transform.localScale = new Vector3(1, 1, 1);
+    //     }
+    //     else if (horizontalVelocity < -0.1f)
+    //     {
+    //         transform.localScale = new Vector3(-1, 1, 1);
+    //     }
+    // }
 
     protected float[] SenseWithWhiskers(int whiskerCount, float whiskerLength, LayerMask layerMask)
     {
