@@ -13,6 +13,7 @@ public class Controller : MonoBehaviour
     public PopulationManager populationManager;
     public SpeciesDatabase speciesDatabase;
     public WorldMenuManager worldMenuManager;
+    public CreatureUIManager uiManager;
 
     [Header("UI (UXML)")]
     public UIDocument mainUIDocument;
@@ -181,6 +182,25 @@ public class Controller : MonoBehaviour
 
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
+            // Todo: this is actually more lik handle mouse click then handle construction. Might change later
+            Vector2 mousePosition = mainCamera.ScreenToWorldPoint(Mouse.current.position.ReadValue());
+            RaycastHit2D hit = Physics2D.Raycast(mousePosition, Vector2.zero);
+
+            if (hit.collider != null)
+            {
+                Creature clickedCreature = hit.collider.GetComponent<Creature>();
+                if (clickedCreature != null)
+                {
+                    // --- THIS IS THE KEY ---
+                    // We found a creature. Tell the UI Manager to select it.
+                    uiManager.SelectCreature(clickedCreature);
+                    return; // Stop here. Don't try to build anything.
+                }
+            }
+
+            // If we've reached this point, we didn't click a creature or UI.
+            // Deselect any currently selected creature.
+            uiManager.Deselect();
             if (currentSelectedItem != null)
             {
                 currentSelectedItem.Place(this, worldManager, currentCell);
@@ -261,7 +281,7 @@ public class Controller : MonoBehaviour
         populationManager.populationOverride = (int)value;
         UpdateSimStatsText();
     }
-    
+
     private void UpdateSimStatsText()
     {
         float speed = timeScaleSlider.value;

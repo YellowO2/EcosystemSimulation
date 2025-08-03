@@ -42,7 +42,6 @@ public abstract class Creature : MonoBehaviour
     private float[] lastBrainOutputs;
     public float[] GetLastInputs() { return lastBrainInputs; }
     public float[] GetLastOutputs() { return lastBrainOutputs; }
-    public static Creature currentlySelected;
 
 
 
@@ -278,9 +277,4 @@ public abstract class Creature : MonoBehaviour
         isGrounded = false;
     }
     
-    protected virtual void OnMouseDown()
-    {
-        Debug.Log($"Creature {speciesName} selected.");
-        currentlySelected = this;
-    }
 }

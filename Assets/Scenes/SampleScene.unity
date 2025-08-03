@@ -1228,6 +1228,7 @@ MonoBehaviour:
   populationManager: {fileID: 934909956}
   speciesDatabase: {fileID: 11400000, guid: f3a44ecf16c56244db9512ac29ba0b26, type: 2}
   worldMenuManager: {fileID: 234789221}
+  uiManager: {fileID: 1412705547}
   mainUIDocument: {fileID: 560499303}
   hotbarItems:
   - {fileID: 11400000, guid: 1b9754c11c222b34c9810461614c0c51, type: 2}

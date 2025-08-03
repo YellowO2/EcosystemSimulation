@@ -2,31 +2,31 @@ using UnityEngine;
 
 public class CreatureUIManager : MonoBehaviour
 {
-    public static CreatureUIManager instance;
+    // No longer needs a public static instance.
+    private Creature currentlySelected; // This manager's private reference.
 
-    void Awake()
+    // A new public method for the Controller to call.
+    public void SelectCreature(Creature creature)
     {
-        // Ensure only one instance of this manager in the scene.
-        if (instance != null && instance != this)
-        {
-            Destroy(this.gameObject);
-        }
-        else
-        {
-            instance = this;
-        }
+        this.currentlySelected = creature;
+    }
+
+    // Deselects the creature if we click elsewhere.
+    public void Deselect()
+    {
+        this.currentlySelected = null;
     }
 
     void OnGUI()
     {
-        if (Creature.currentlySelected == null)
+        if (currentlySelected == null)
         {
-            return; // No creature selected, so do nothing.
+            return; // No creature selected, do nothing.
         }
 
         // A creature is selected. Get its brain activity.
-        float[] inputs = Creature.currentlySelected.GetLastInputs();
-        float[] outputs = Creature.currentlySelected.GetLastOutputs();
+       float[] inputs = currentlySelected.GetLastInputs();
+        float[] outputs = currentlySelected.GetLastOutputs();
 
         if (inputs == null || outputs == null) return;
 
