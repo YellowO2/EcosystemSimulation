@@ -35,10 +35,16 @@ public abstract class Creature : MonoBehaviour
 
     private int frameSkip = 4;
     private int frameCounter;
-    private float[] lastBrainOutputs;
     protected Rigidbody2D rb;
     private float originalGravityScale;
     private float originalLinearDrag;
+    private float[] lastBrainInputs;
+    private float[] lastBrainOutputs;
+    public float[] GetLastInputs() { return lastBrainInputs; }
+    public float[] GetLastOutputs() { return lastBrainOutputs; }
+    public static Creature currentlySelected;
+
+
 
     public virtual void Init(NeuralNetwork brain, string speciesName)
     {
@@ -63,10 +69,9 @@ public abstract class Creature : MonoBehaviour
         if (frameCounter >= frameSkip)
         {
             frameCounter = 0;
-            float[] inputs = GatherInputs();
-            float[] outputs = brain.FeedForward(inputs);
-            lastBrainOutputs = outputs;
-            PerformAction(outputs);
+            lastBrainInputs = GatherInputs();
+            lastBrainOutputs = brain.FeedForward(lastBrainInputs);
+            PerformAction(lastBrainOutputs);
         }
         else if (lastBrainOutputs != null)
         {
@@ -242,7 +247,7 @@ public abstract class Creature : MonoBehaviour
             rb.linearDamping = 1;
         }
     }
-    
+
     protected virtual void OnTriggerExit2D(Collider2D other)
     {
         if (other.CompareTag("Water"))
@@ -255,9 +260,27 @@ public abstract class Creature : MonoBehaviour
 
     protected virtual void CheckGrounded()
     {
-        // A simple, universal raycast.
-        // A creature that flies or doesn't care about ground can override this to do nothing.
-        float raycastDistance = transform.localScale.y * 0.5f + 0.1f;
-        isGrounded = Physics2D.Raycast(transform.position, Vector2.down, raycastDistance, groundLayer);
+        Vector2 castSize = new Vector2(transform.lossyScale.x * 0.9f, 0.1f);
+        float castDistance = transform.lossyScale.y * 0.5f;
+        Vector2 castOrigin = transform.position;
+
+        RaycastHit2D hit = Physics2D.BoxCast(castOrigin, castSize, 0f, Vector2.down, castDistance, groundLayer);
+
+        if (hit.collider != null)
+        {
+            // check if the thing we hit is not our own collider.
+            if (hit.collider.gameObject != this.gameObject)
+            {
+                isGrounded = true;
+                return;
+            }
+        }
+        isGrounded = false;
+    }
+    
+    protected virtual void OnMouseDown()
+    {
+        Debug.Log($"Creature {speciesName} selected.");
+        currentlySelected = this;
     }
 }
