@@ -25,9 +25,9 @@ public class Controller : MonoBehaviour
     private VisualElement currentlySelectedSlotElement;
 
     [Header("Camera Controls")]
-    public float zoomSpeed = 20f;
-    public float minZoom = 2f;
-    public float maxZoom = 20f;
+    private float zoomSpeed = 20f;
+    private float minZoom = 2f;
+    private float maxZoom = 50f;
     private Camera mainCamera;
     private string currentWorldName;
     private Vector3Int lastModifiedCell;
