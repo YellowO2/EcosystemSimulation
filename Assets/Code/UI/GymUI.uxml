@@ -1,11 +1,16 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
     <Style src="project://database/Assets/Code/UI/GlobalStyles.uss" />
     <ui:VisualElement name="gym-setup-panel" class="panel--small" style="position: absolute; width: 250px; right: 10px; top: 10px;">
-        <ui:Label text="Gym Control" class="label--title" />
-        <ui:ScrollView class="flex-grow">
-            <ui:VisualElement name="species-list" />
-        </ui:ScrollView>
-        <ui:Button name="start-button" text="Start Gym Simulation" class="button--primary margin-top-medium" />
+        <ui:VisualElement class="row" style="justify-content: space-between; align-items: center;">
+            <ui:Label text="Gym Control" class="label--title" />
+            <ui:Button name="toggle-setup-button" text="─" style="width: 20px; height: 20px; font-size: 12px;" />
+        </ui:VisualElement>
+        <ui:VisualElement name="setup-content">
+            <ui:ScrollView class="flex-grow">
+                <ui:VisualElement name="species-list" />
+            </ui:ScrollView>
+            <ui:Button name="start-button" text="Start Gym Simulation" class="button--primary margin-top-medium" />
+        </ui:VisualElement>
     </ui:VisualElement>
     <ui:VisualElement name="hotbar-container" class="center" style="position: absolute; bottom: 80px; left: 0; right: 0;">
         <ui:VisualElement name="hotbar-slots-container" class="row panel--small" />

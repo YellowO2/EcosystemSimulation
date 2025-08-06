@@ -63,12 +63,11 @@ public class PopulationManager : MonoBehaviour
 
 
     #region Core Simulation Control
-    public void ConfigureAndStartSimulation(List<string> speciesToActivate)
+    public void SpawnInitialCreatures(List<string> speciesToActivate)
     {
-        ClearSimulation();
         this.activeSpeciesNames = speciesToActivate;
         generationTimer = 0f;
-        currentGeneration = 1;
+        if (currentGeneration == 0) currentGeneration = 1;
 
         foreach (string speciesName in activeSpeciesNames)
         {
@@ -94,6 +93,15 @@ public class PopulationManager : MonoBehaviour
                 SpawnCreature(config, worldManager.GetSpawnPoint(), childBrain);
             }
         }
+    }
+
+    public bool HasExistingCreatures()
+    {
+        foreach (var creatureList in population.Values)
+        {
+            if (creatureList.Count > 0) return true;
+        }
+        return false;
     }
 
     private Creature SpawnCreature(SpeciesConfiguration config, Vector2 position, NeuralNetwork brain)

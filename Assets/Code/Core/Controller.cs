@@ -35,7 +35,9 @@ public class Controller : MonoBehaviour
     // UXML Element References
     private VisualElement root;
     private VisualElement gymSetupPanel;
+    private VisualElement setupContent;
     private Button startGymButton;
+    private Button toggleSetupButton;
     private VisualElement speciesListContainer;
     private Slider timeScaleSlider;
     private Slider mutationSlider;
@@ -43,6 +45,7 @@ public class Controller : MonoBehaviour
     private Slider populationSlider;
     private Button saveWorldButton;
     private Label simStatsLabel;
+    private bool setupPanelCollapsed = false;
     #endregion
 
 
@@ -58,9 +61,12 @@ public class Controller : MonoBehaviour
         root = mainUIDocument.rootVisualElement;
 
         gymSetupPanel = root.Q<VisualElement>("gym-setup-panel");
+        setupContent = root.Q<VisualElement>("setup-content");
         startGymButton = root.Q<Button>("start-button");
+        toggleSetupButton = root.Q<Button>("toggle-setup-button");
         speciesListContainer = root.Q<VisualElement>("species-list");
         startGymButton.clicked += StartGymSimulation;
+        toggleSetupButton.clicked += ToggleSetupPanel;
 
         timeScaleSlider = root.Q<Slider>("time-scale-slider");
         mutationSlider = root.Q<Slider>("mutation-slider");
@@ -81,6 +87,7 @@ public class Controller : MonoBehaviour
     void OnDisable()
     {
         if (startGymButton != null) startGymButton.clicked -= StartGymSimulation;
+        if (toggleSetupButton != null) toggleSetupButton.clicked -= ToggleSetupPanel;
         if (saveWorldButton != null) saveWorldButton.clicked -= HandleSaveCurrentWorld;
     }
 
@@ -121,6 +128,20 @@ public class Controller : MonoBehaviour
     {
         root.style.display = DisplayStyle.Flex;
         gymSetupPanel.style.display = DisplayStyle.Flex;
+        
+        // Collapse setup panel content by default if creatures already exist
+        if (populationManager.HasExistingCreatures())
+        {
+            setupPanelCollapsed = true;
+            setupContent.style.display = DisplayStyle.None;
+            toggleSetupButton.text = "☰"; // Hamburger icon
+        }
+        else
+        {
+            setupPanelCollapsed = false;
+            setupContent.style.display = DisplayStyle.Flex;
+            toggleSetupButton.text = "─"; // Minimize icon
+        }
     }
 
     public void HideHUD()
@@ -141,6 +162,22 @@ public class Controller : MonoBehaviour
 
 
     #region Gym UI (UXML)
+    private void ToggleSetupPanel()
+    {
+        setupPanelCollapsed = !setupPanelCollapsed;
+        
+        if (setupPanelCollapsed)
+        {
+            setupContent.style.display = DisplayStyle.None;
+            toggleSetupButton.text = "☰"; // Hamburger icon
+        }
+        else
+        {
+            setupContent.style.display = DisplayStyle.Flex;
+            toggleSetupButton.text = "─"; // Minimize icon
+        }
+    }
+
     private void PopulateSpeciesToggles()
     {
         speciesListContainer.Clear();
@@ -162,8 +199,11 @@ public class Controller : MonoBehaviour
 
         if (selectedSpeciesNames.Count > 0)
         {
-            populationManager.ConfigureAndStartSimulation(selectedSpeciesNames);
-            gymSetupPanel.style.display = DisplayStyle.None;
+            populationManager.SpawnInitialCreatures(selectedSpeciesNames);
+            // Collapse the setup content instead of hiding the whole panel
+            setupPanelCollapsed = true;
+            setupContent.style.display = DisplayStyle.None;
+            toggleSetupButton.text = "☰"; // Hamburger icon
         }
     }
     #endregion
