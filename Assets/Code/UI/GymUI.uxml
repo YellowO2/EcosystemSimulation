@@ -1,26 +1,26 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
-    <Style src="project://database/Assets/Code/UI/Hotbar.uss?fileID=7433441132597879392&amp;guid=9a24c2e032e74304eb3737547265085a&amp;type=3#Hotbar" />
-    <ui:VisualElement name="gym-setup-panel" style="position: absolute; width: 250px; right: 10px; top: 10px; background-color: rgba(0, 0, 0, 0.7); border-radius: 5px; padding: 10px;">
-        <ui:Label text="Gym Control" style="font-size: 16px; -unity-font-style: bold; margin-bottom: 10px;" />
-        <ui:ScrollView style="flex-grow: 1;">
+    <Style src="project://database/Assets/Code/UI/GlobalStyles.uss" />
+    <ui:VisualElement name="gym-setup-panel" class="panel--small" style="position: absolute; width: 250px; right: 10px; top: 10px;">
+        <ui:Label text="Gym Control" class="label--title" />
+        <ui:ScrollView class="flex-grow">
             <ui:VisualElement name="species-list" />
         </ui:ScrollView>
-        <ui:Button name="start-button" text="Start Gym Simulation" style="margin-top: 10px;" />
+        <ui:Button name="start-button" text="Start Gym Simulation" class="button--primary margin-top-medium" />
     </ui:VisualElement>
-    <ui:VisualElement name="hotbar-container" style="position: absolute; bottom: 80px; left: 0; right: 0; align-items: center; justify-content: center;">
-        <ui:VisualElement name="hotbar-slots-container" style="flex-direction: row; background-color: rgba(0, 0, 0, 0.7); padding: 5px; border-radius: 5px;" />
+    <ui:VisualElement name="hotbar-container" class="center" style="position: absolute; bottom: 80px; left: 0; right: 0;">
+        <ui:VisualElement name="hotbar-slots-container" class="row panel--small" />
     </ui:VisualElement>
-    <ui:VisualElement style="position: absolute; bottom: 10px; left: 0; right: 0; align-items: center;">
-        <ui:VisualElement style="background-color: rgba(0, 0, 0, 0.7); padding: 5px 15px; border-radius: 5px; align-items: center;">
-            <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 5px;">
-                <ui:Slider name="duration-slider" low-value="5" high-value="120" style="width: 120px; margin-right: 10px;" />
-                <ui:Slider name="population-slider" low-value="1" high-value="200" style="width: 120px; margin-right: 10px;" />
-                <ui:Slider name="time-scale-slider" low-value="0.1" high-value="10" style="width: 120px; margin-right: 10px;" />
+    <ui:VisualElement class="center" style="position: absolute; bottom: 10px; left: 0; right: 0;">
+        <ui:VisualElement class="panel--small center">
+            <ui:VisualElement class="row center margin-bottom-small">
+                <ui:Slider name="duration-slider" low-value="5" high-value="120" style="width: 120px;" class="margin-right-medium" />
+                <ui:Slider name="population-slider" low-value="1" high-value="200" style="width: 120px;" class="margin-right-medium" />
+                <ui:Slider name="time-scale-slider" low-value="0.1" high-value="10" style="width: 120px;" class="margin-right-medium" />
                 <ui:Slider name="mutation-slider" low-value="1" high-value="5" style="width: 120px;" />
             </ui:VisualElement>
-            <ui:VisualElement style="flex-direction: row; align-items: center;">
-                <ui:Button name="save-world-button" text="Save World" style="margin-right: 20px;" />
-                <ui:Label name="sim-stats-label" text="Speed: 1.0x | Mutation: 1.0x" />
+            <ui:VisualElement class="row center">
+                <ui:Button name="save-world-button" text="Save World" class="margin-right-large" />
+                <ui:Label name="sim-stats-label" text="Speed: 1.0x | Mutation: 1.0x" class="label--stats" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

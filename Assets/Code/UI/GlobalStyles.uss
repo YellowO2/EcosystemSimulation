@@ -1,0 +1,281 @@
+/* Global UI Styles for Ecosystem Simulation */
+
+/* Color Variables - Consistent Theme */
+:root {
+    --bg-primary: rgba(40, 40, 40, 0.9);
+    --bg-secondary: rgba(50, 50, 50, 0.8);
+    --bg-overlay: rgba(0, 0, 0, 0.7);
+    --border-primary: rgba(100, 100, 100, 0.4);
+    --border-hover: rgba(120, 120, 120, 0.6);
+    --accent-blue: rgb(64, 150, 230);
+    --accent-yellow: rgb(255, 220, 60);
+    --text-primary: rgba(255, 255, 255, 0.9);
+    --text-secondary: rgba(200, 200, 200, 0.8);
+}
+
+/* Panel Styles */
+.panel {
+    background-color: var(--bg-overlay);
+    border-radius: 8px;
+    padding: 15px;
+    border-width: 1px;
+    border-color: var(--border-primary);
+}
+
+.panel--large {
+    background-color: var(--bg-primary);
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.panel--small {
+    background-color: var(--bg-overlay);
+    border-radius: 5px;
+    padding: 10px;
+}
+
+/* Button Styles */
+.unity-button {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-primary);
+    border-width: 1px;
+    border-radius: 6px;
+    padding: 8px 16px;
+    color: var(--text-primary);
+    font-size: 13px;
+    transition-duration: 0.2s;
+}
+
+.unity-button:hover {
+    background-color: rgba(70, 70, 70, 0.9);
+    border-color: var(--border-hover);
+}
+
+.unity-button:active {
+    background-color: rgba(30, 30, 30, 0.9);
+}
+
+.button--primary {
+    background-color: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: white;
+}
+
+.button--primary:hover {
+    background-color: rgb(54, 130, 200);
+}
+
+/* Text Field Styles */
+.unity-text-field {
+    background-color: rgba(30, 30, 30, 0.8);
+    border-color: var(--border-primary);
+    border-width: 1px;
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.unity-text-field:focus {
+    border-color: var(--accent-blue);
+    background-color: rgba(35, 35, 35, 0.9);
+}
+
+.unity-text-field__input {
+    background-color: transparent;
+    border-width: 0;
+    color: var(--text-primary);
+}
+
+/* Dropdown Styles */
+.unity-dropdown-field {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-primary);
+    border-width: 1px;
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.unity-dropdown-field:hover {
+    border-color: var(--border-hover);
+}
+
+.unity-dropdown-field__input {
+    background-color: transparent;
+    color: var(--text-primary);
+}
+
+/* Slider Styles */
+.unity-slider {
+    margin: 4px 0;
+}
+
+.unity-slider__tracker {
+    background-color: rgba(60, 60, 60, 0.8);
+    border-radius: 2px;
+    height: 4px;
+}
+
+.unity-slider__dragger {
+    background-color: var(--accent-blue);
+    border-color: var(--accent-blue);
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+}
+
+.unity-slider__dragger:hover {
+    background-color: rgb(54, 130, 200);
+}
+
+/* Scroll View Styles */
+.unity-scroll-view {
+    background-color: rgba(25, 25, 25, 0.5);
+    border-color: var(--border-primary);
+    border-width: 1px;
+    border-radius: 4px;
+}
+
+.unity-scroll-view__content-viewport {
+    background-color: transparent;
+}
+
+/* Label Styles */
+.unity-label {
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.label--header {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: white;
+    margin-bottom: 10px;
+    -unity-text-align: middle-center;
+}
+
+.label--title {
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: white;
+    margin-bottom: 8px;
+}
+
+.label--stats {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* Toggle Styles */
+.unity-toggle {
+    margin: 4px 0;
+    padding: 8px 12px;
+    background-color: rgba(40, 40, 40, 0.8);
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: var(--border-primary);
+    transition-duration: 0.2s;
+}
+
+.unity-toggle:hover {
+    background-color: rgba(60, 60, 60, 0.9);
+    border-color: var(--border-hover);
+}
+
+.unity-toggle__checkmark {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border-width: 2px;
+    border-color: rgba(100, 100, 100, 0.8);
+    background-color: rgba(30, 30, 30, 0.8);
+    margin-right: 8px;
+}
+
+.unity-toggle:checked .unity-toggle__checkmark {
+    background-color: var(--accent-blue);
+    border-color: var(--accent-blue);
+}
+
+.unity-toggle__text {
+    color: var(--text-primary);
+    font-size: 13px;
+    -unity-font-style: normal;
+}
+
+.unity-toggle:checked .unity-toggle__text {
+    color: white;
+    -unity-font-style: bold;
+}
+
+/* Hotbar Specific Styles */
+.hotbar-slot {
+    width: 50px;
+    height: 50px;
+    background-color: var(--bg-secondary);
+    border-width: 2px;
+    border-color: var(--border-primary);
+    margin: 3px;
+    border-radius: 4px;
+    transition-duration: 0.2s;
+    
+    /* Center the icon */
+    -unity-background-image-tint-color: white;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.hotbar-slot:hover {
+    border-color: var(--border-hover);
+}
+
+.hotbar-slot--selected {
+    border-color: var(--accent-yellow);
+    border-width: 3px;
+    background-color: rgba(60, 60, 60, 0.9);
+}
+
+/* Layout Helpers */
+.row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.column {
+    flex-direction: column;
+}
+
+.center {
+    align-items: center;
+    justify-content: center;
+}
+
+.space-between {
+    justify-content: space-between;
+}
+
+.flex-grow {
+    flex-grow: 1;
+}
+
+/* Spacing Utilities */
+.margin-small { margin: 5px; }
+.margin-medium { margin: 10px; }
+.margin-large { margin: 15px; }
+
+.padding-small { padding: 5px; }
+.padding-medium { padding: 10px; }
+.padding-large { padding: 15px; }
+
+.margin-bottom-small { margin-bottom: 5px; }
+.margin-bottom-medium { margin-bottom: 10px; }
+.margin-bottom-large { margin-bottom: 15px; }
+
+.margin-top-small { margin-top: 5px; }
+.margin-top-medium { margin-top: 10px; }
+.margin-top-large { margin-top: 15px; }
+
+.margin-right-small { margin-right: 5px; }
+.margin-right-medium { margin-right: 10px; }
+.margin-right-large { margin-right: 20px; }
