@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: ground_tile
   m_EditorClassIdentifier: 
   m_Sprite: {fileID: 7482667652216324306, guid: 6f21b49516cbe401cb17921bcb1ccd25, type: 3}
-  m_Color: {r: 0.83921576, g: 0.5647059, b: 0.40000004, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Transform:
     e00: 1
     e01: 0

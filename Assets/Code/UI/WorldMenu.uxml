@@ -17,8 +17,6 @@
                 <ui:TextField name="new-world-name-input" placeholder-text="New World Name..." class="flex-grow margin-right-small" />
                 <ui:Button name="create-world-button" text="Create" class="button--primary" />
             </ui:VisualElement>
-
-            <ui:Button name="save-world-button" text="Save Current World" style="width: 100%;" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

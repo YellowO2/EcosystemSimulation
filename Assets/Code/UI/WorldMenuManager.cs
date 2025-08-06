@@ -17,7 +17,6 @@ public class WorldMenuManager : MonoBehaviour
     private DropdownField presetDropdown; 
     private TextField newWorldNameInput;
     private Button createWorldButton;
-    private Button saveCurrentWorldButton;
     public bool IsVisible => menuRoot != null && menuRoot.style.display == DisplayStyle.Flex;
 
     private string currentWorldName;
@@ -30,10 +29,9 @@ public class WorldMenuManager : MonoBehaviour
         presetDropdown = menuRoot.Q<DropdownField>("preset-dropdown");
         newWorldNameInput = menuRoot.Q<TextField>("new-world-name-input");
         createWorldButton = menuRoot.Q<Button>("create-world-button");
-        saveCurrentWorldButton = menuRoot.Q<Button>("save-world-button");
+     
         
         createWorldButton.clicked += HandleCreateNewWorld;
-        saveCurrentWorldButton.clicked += HandleSaveCurrentWorld;
         
         menuRoot.style.display = DisplayStyle.None;
     }
@@ -51,8 +49,7 @@ public class WorldMenuManager : MonoBehaviour
         
         PopulateWorldList();
         PopulatePresetDropdown(); // Populate the new dropdown
-        
-        saveCurrentWorldButton.SetEnabled(!string.IsNullOrEmpty(currentWorldName));
+    
         gameController.HideHUD();
     }
 
