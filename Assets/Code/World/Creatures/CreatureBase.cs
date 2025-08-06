@@ -4,6 +4,7 @@ using System;
 [RequireComponent(typeof(Rigidbody2D))]
 public abstract class Creature : MonoBehaviour
 {
+    public bool isSelected = false;
     public static event Action<Creature> OnCreatureBorn;
 
     [Header("Identity")]
@@ -207,8 +208,10 @@ public abstract class Creature : MonoBehaviour
         return whiskerInputs;
     }
 
-    protected virtual void OnDrawGizmosSelected()
+    protected virtual void OnDrawGizmos()
     {
+        if (!isSelected) return;
+
         if (!Application.isPlaying || !whiskerDebugData.HasValue) return;
         var (count, length, distances) = whiskerDebugData.Value;
         if (distances == null || distances.Length != count) return;

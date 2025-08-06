@@ -8,12 +8,22 @@ public class CreatureUIManager : MonoBehaviour
     // A new public method for the Controller to call.
     public void SelectCreature(Creature creature)
     {
+        if (currentlySelected != null)
+        {            // Deselect the previous creature.
+            currentlySelected.isSelected = false;
+        }
         this.currentlySelected = creature;
+        this.currentlySelected.isSelected = true;
+
     }
 
     // Deselects the creature if we click elsewhere.
     public void Deselect()
     {
+        if (currentlySelected != null)
+        {
+            currentlySelected.isSelected = false;
+        }
         this.currentlySelected = null;
     }
 
@@ -25,7 +35,7 @@ public class CreatureUIManager : MonoBehaviour
         }
 
         // A creature is selected. Get its brain activity.
-       float[] inputs = currentlySelected.GetLastInputs();
+        float[] inputs = currentlySelected.GetLastInputs();
         float[] outputs = currentlySelected.GetLastOutputs();
 
         if (inputs == null || outputs == null) return;
