@@ -24,6 +24,10 @@ public class Controller : MonoBehaviour
     private VisualElement hotbarSlotsContainer;
     private VisualElement currentlySelectedSlotElement;
 
+    [Header("Camera Controls")]
+    public float zoomSpeed = 20f;
+    public float minZoom = 2f;
+    public float maxZoom = 20f;
     private Camera mainCamera;
     private string currentWorldName;
     private Vector3Int lastModifiedCell;
@@ -168,11 +172,33 @@ public class Controller : MonoBehaviour
     #region In-Game Controls
     private void HandleCameraControls()
     {
+        // Panning Controls  ---
         float cameraSpeed = 10f * Time.unscaledDeltaTime;
         if (Keyboard.current.rightArrowKey.isPressed) mainCamera.transform.position += new Vector3(cameraSpeed, 0, 0);
         if (Keyboard.current.leftArrowKey.isPressed) mainCamera.transform.position += new Vector3(-cameraSpeed, 0, 0);
         if (Keyboard.current.upArrowKey.isPressed) mainCamera.transform.position += new Vector3(0, cameraSpeed, 0);
         if (Keyboard.current.downArrowKey.isPressed) mainCamera.transform.position += new Vector3(0, -cameraSpeed, 0);
+
+        // --- Zoom Controls ---
+        float scroll = Mouse.current.scroll.y.ReadValue();
+
+        if (scroll != 0)
+        {
+
+            // get world position before zooming
+            Vector3 mousePosBeforeZoom = mainCamera.ScreenToWorldPoint(Mouse.current.position.ReadValue());
+
+            // Calculate the new orthographic size
+            float newSize = mainCamera.orthographicSize - scroll * zoomSpeed * Time.unscaledDeltaTime;
+            mainCamera.orthographicSize = Mathf.Clamp(newSize, minZoom, maxZoom);
+
+            // Get the world position under the mouse after zooming
+            Vector3 mousePosAfterZoom = mainCamera.ScreenToWorldPoint(Mouse.current.position.ReadValue());
+
+            // Calculate the difference and move the camera to counteract the shift
+            Vector3 offset = mousePosBeforeZoom - mousePosAfterZoom;
+            mainCamera.transform.position += offset;
+        }
     }
 
     private void HandleConstruction()
@@ -182,13 +208,16 @@ public class Controller : MonoBehaviour
 
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
+            Debug.Log($"Mouse clicked at cell: {currentCell}");
             // Todo: this is actually more lik handle mouse click then handle construction. Might change later
             Vector2 mousePosition = mainCamera.ScreenToWorldPoint(Mouse.current.position.ReadValue());
-            RaycastHit2D hit = Physics2D.Raycast(mousePosition, Vector2.zero);
+            Collider2D hitCollider = Physics2D.OverlapPoint(mousePosition);
 
-            if (hit.collider != null)
+            Debug.Log($"hit.collider: {hitCollider?.name}");
+            if (hitCollider != null)
             {
-                Creature clickedCreature = hit.collider.GetComponent<Creature>();
+                Creature clickedCreature = hitCollider.GetComponent<Creature>();
+                Debug.Log($"Clicked on: {clickedCreature?.name}");
                 if (clickedCreature != null)
                 {
                     // --- THIS IS THE KEY ---

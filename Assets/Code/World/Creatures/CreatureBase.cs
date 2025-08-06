@@ -210,10 +210,8 @@ public abstract class Creature : MonoBehaviour
     protected virtual void OnDrawGizmosSelected()
     {
         if (!Application.isPlaying || !whiskerDebugData.HasValue) return;
-
         var (count, length, distances) = whiskerDebugData.Value;
         if (distances == null || distances.Length != count) return;
-
         float totalAngleSpread = 180f;
         float startAngle = -totalAngleSpread / 2f;
         float angleStep = (count > 1) ? totalAngleSpread / (count - 1) : 0;
@@ -225,7 +223,6 @@ public abstract class Creature : MonoBehaviour
             Quaternion rotation = Quaternion.AngleAxis(currentAngle, Vector3.forward);
             Vector2 direction = transform.TransformDirection(rotation * facingDirection);
             float dist = distances[i];
-
             Gizmos.color = dist < length ? Color.red : Color.green;
             Gizmos.DrawLine(transform.position, (Vector2)transform.position + direction * dist);
         }
@@ -240,7 +237,6 @@ public abstract class Creature : MonoBehaviour
     {
         if (other.CompareTag("Water"))
         {
-            Debug.Log($" entered water.");
             isInWater = true;
             rb.gravityScale = 0;
             rb.linearDamping = 1;
