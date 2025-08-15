@@ -1,6 +1,6 @@
 # Neural Network Creature Simulation
 
-A Unity-based simulation where AI creatures learn to navigate terrains and find food using neural networks and genetic algorithms. 
+A Unity-based simulation where I built a neural network from scratch in C# for AI creatures to learn to navigate terrains and find food using neural networks and genetic algorithms. 
 
 ## Key Features
 - **Neural Network Brains**: Each creature processes sensory inputs (wall detection, food detection, predator awareness) to make movement decisions
